@@ -1,5 +1,5 @@
 from config.config import Base, engine
-import models  # noqa: F401  # type: ignore
+from models import client, contract, event, user  # noqa: F401
 
 
 if __name__ == '__main__':
