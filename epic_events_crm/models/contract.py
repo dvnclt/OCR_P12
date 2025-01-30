@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import date
 
-from config.config import Base
+from epic_events_crm.config.config import Base
 
 
 class Contract(Base):

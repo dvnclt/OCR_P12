@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey
 from sqlalchemy.orm import relationship
 
-from config.config import Base
+from epic_events_crm.config.config import Base
 
 
 class Event(Base):
