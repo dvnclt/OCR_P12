@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey
 from sqlalchemy.orm import relationship
 
-from epic_events_crm.config.config import Base
+from config.config import Base
 
 
 class Event(Base):
@@ -15,9 +15,9 @@ class Event(Base):
     end_date = Column(Date)
     location = Column(String)
     attendees = Column(Integer)
-    support_contact_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
     notes = Column(String)
 
     client = relationship('Client', back_populates='events')
-    contract = relationship('Contract', back_populates='event')
+    contract = relationship('Contract', back_populates='events')
     user = relationship('User', back_populates='events')

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from epic_events_crm.models.user import User
-from epic_events_crm.services.auth_service import set_password
+from models.user import User
+from services.auth_service import set_password
 
 
 class UserRepository:
@@ -10,10 +10,7 @@ class UserRepository:
 
     def create_user(self, email: str, full_name: str,
                     hashed_password: str) -> User:
-        """
-        Ajoute un nouvel utilisateur dans la db
-        """
-
+        # Ajoute un nouvel utilisateur dans la db
         new_user = User(email=email, full_name=full_name,
                         hashed_password=hashed_password)
         self.db.add(new_user)

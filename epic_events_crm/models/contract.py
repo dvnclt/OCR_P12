@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import date
 
-from epic_events_crm.config.config import Base
+from config.config import Base
 
 
 class Contract(Base):
@@ -14,8 +14,8 @@ class Contract(Base):
     remaining_amount = Column(Integer)
     creation_date = Column(Date, default=date.today())
     contract_status = Column(String)
-    sales_contact_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
 
     client = relationship('Client', back_populates='contracts')
     user = relationship('User', back_populates='contracts')
-    event = relationship('Event', back_populates='contract')
+    events = relationship('Event', back_populates='contract')

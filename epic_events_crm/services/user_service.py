@@ -1,8 +1,9 @@
 import logging
+
 from sqlalchemy.exc import SQLAlchemyError
 
-from epic_events_crm.repositories.user_repository import UserRepository
-from epic_events_crm.services.auth_service import verify_password, set_password
+from repositories.user_repository import UserRepository
+from auth_service import verify_password, set_password
 
 
 class UserService:

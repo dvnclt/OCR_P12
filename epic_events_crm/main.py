@@ -1,5 +1,5 @@
 from config.config import Base, engine
-from models import client, contract, event, user  # noqa: F401
+from models import user, client, contract, event  # noqa: F401
 
 
 if __name__ == '__main__':

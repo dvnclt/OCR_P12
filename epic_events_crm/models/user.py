@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
-from epic_events_crm.config.config import Base
+from config.config import Base
 
 
 class User(Base):
@@ -10,11 +10,12 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String)
     email = Column(String, unique=True, index=True)
-    password = Column(String)
+    hashed_password = Column('password', String)
+    role_id = Column(Integer, ForeignKey('roles.id'))
 
-    client = relationship('Client', back_populates='users')
-    contract = relationship('Contract', back_populates='users')
-    event = relationship('Event', back_populates='users')
+    clients = relationship('Client', back_populates='user')
+    contracts = relationship('Contract', back_populates='user')
+    events = relationship('Event', back_populates='user')
     role = relationship("Role", back_populates="users")
 
 
@@ -24,4 +25,4 @@ class Role(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
 
-    user = relationship("User", back_populates="role")
+    users = relationship("User", back_populates="role")
