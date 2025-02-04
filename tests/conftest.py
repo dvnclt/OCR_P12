@@ -12,15 +12,18 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False,
                                    bind=engine)
 
 
-# Fixture pour fournir une session de base de données pour les tests.
 @pytest.fixture
 def db_session():
-    # Crée toutes les tables dans la BDD en mémoire
-    Base.metadata.create_all(bind=engine)
+    """
+    Fixture qui démarre une transaction et annule toutes les modifications
+    après chaque test.
+    """
+    Base.metadata.create_all(bind=engine)  # Crée les tables avant chaque test
+    connection = engine.connect()  # Créé une connexion indépendante
 
-    session = TestingSessionLocal()
-    yield session
-    session.close()
+    session = TestingSessionLocal(bind=connection)
+    yield session  # Fournit la session aux tests
 
-    # Supprime les tables après le test
-    Base.metadata.drop_all(bind=engine)
+    session.rollback()  # Annule les modifications
+    connection.close()  # Ferme la connexion
+    Base.metadata.drop_all(bind=engine)  # Supprime les tables après le test
