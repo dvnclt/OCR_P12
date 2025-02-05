@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 
 from models.user import User
-from services.auth_service import set_password
 
 
 class UserRepository:
@@ -43,7 +42,7 @@ class UserRepository:
             if email:
                 user.email = email
             if password:
-                user.hashed_password = set_password(password)
+                user.hashed_password = password
             self.db.commit()
             self.db.refresh(user)
         return user

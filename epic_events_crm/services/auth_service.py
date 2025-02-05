@@ -1,13 +1,17 @@
-from passlib.context import CryptContext
+from argon2 import PasswordHasher
+from argon2.exceptions import Argon2Error, InvalidHashError
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+ph = PasswordHasher()
 
 
 def set_password(password: str) -> str:
     # Hash le mot de passe avant de le stocker
-    return pwd_context.hash(password)
+    return ph.hash(password)
 
 
 def verify_password(hashed_password: str, password: str) -> bool:
     # Vérifie si le mot de passe correspond au hash stocké
-    return pwd_context.verify(password, hashed_password)
+    try:
+        return ph.verify(hashed_password, password)
+    except (Argon2Error, InvalidHashError):
+        return False
