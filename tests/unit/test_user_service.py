@@ -14,12 +14,14 @@ def test_create_user_success(db_session):
     email = "test@example.com"
     full_name = "Test User"
     password = "hashedpwd"
+    role = "gestion"
 
-    new_user = service.create_user(email, full_name, password)
+    new_user = service.create_user(email, full_name, password, role)
 
     assert new_user is not None
     assert new_user.email == email
     assert new_user.full_name == full_name
+    assert new_user.role == role
 
 
 def test_create_user_email_already_exists(db_session):
@@ -28,16 +30,39 @@ def test_create_user_email_already_exists(db_session):
     service = UserService(user_repo)
 
     email = "duplicate@example.com"
-    user_repo.create_user(email, "Existing User", "hashedpwd")
+    user_repo.create_user(email, "Existing User", "hashedpwd", "gestion")
 
-    response, status_code = service.create_user(email, "New User",
-                                                "newpassword")
+    response, status_code = service.create_user(
+        email,
+        "New User",
+        "newpassword",
+        "gestion"
+        )
 
     assert status_code == 400
     assert response == {"error": "Cet adresse email est déjà utilisée"}
 
 
-def test_create_user_sqlalchemy_error(db_session):
+def test_create_user_invalid_role(db_session):
+    """Vérifie qu'un rôle invalide est rejeté"""
+    user_repo = UserRepository(db_session)
+    service = UserService(user_repo)
+
+    response, status_code = service.create_user(
+        email="test@example.com",
+        full_name="Test User",
+        password="securepassword",
+        role="invalide_role"
+    )
+
+    expected_roles = {'gestion', 'commercial', 'support'}
+    assert status_code == 400
+    assert response == {
+        "error": f"Rôle invalide. Choisir parmi {expected_roles}"
+        }
+
+
+def test_create_user_sqlalchemy_error():
     """Test de la gestion d'une exception SQLAlchemyError"""
     # Créé un faux UserRepository
     user_repo = MagicMock()
@@ -50,7 +75,8 @@ def test_create_user_sqlalchemy_error(db_session):
     response, status_code = service.create_user(
         "error@example.com",
         "Error User",
-        "password"
+        "password",
+        "role"
         )
 
     assert status_code == 500
@@ -65,7 +91,8 @@ def test_get_user_by_id_success(db_session):
     user = user_repo.create_user(
         email="test@example.com",
         full_name="Test User",
-        hashed_password="hashedpwd"
+        hashed_password="hashedpwd",
+        role="gestion"
     )
 
     retrieved_user = service.get_user_by_id(user.id)
@@ -106,7 +133,8 @@ def test_get_user_by_email_success(db_session):
     user = user_repo.create_user(
         email="test@example.com",
         full_name="Test User",
-        hashed_password="hashedpwd"
+        hashed_password="hashedpwd",
+        role="gestion"
     )
 
     retrieved_user = service.get_user_by_email(user.email)
@@ -147,14 +175,16 @@ def test_update_user_success(db_session):
     user = user_repo.create_user(
         email="test@example.com",
         full_name="Test User",
-        hashed_password="hashedpwd"
+        hashed_password="hashedpwd",
+        role="gestion"
         )
 
     updated_user = service.update_user(
         user.id,
         full_name="Updated User",
         email="updated@example.com",
-        password="newpassword"
+        password="newpassword",
+        role="commercial"
         )
 
     assert updated_user.full_name == "Updated User"
@@ -170,7 +200,8 @@ def test_update_user_user_not_found(db_session):
         9999,
         full_name="Nonexistent User",
         email="nonexistent@example.com",
-        password="hashedpwd"
+        password="hashedpwd",
+        role="gestion"
         )
 
     assert status_code == 404
@@ -185,7 +216,8 @@ def test_update_user_password_hashing(db_session):
     user = user_repo.create_user(
         email="test@example.com",
         full_name="Test User",
-        hashed_password="hashedpwd"
+        hashed_password="hashedpwd",
+        role="gestion"
     )
 
     old_hashed_password = user.hashed_password
@@ -206,7 +238,8 @@ def test_update_user_sqlalchemy_error(db_session):
         1,
         full_name="Error User",
         email="error@example.com",
-        password="hashedpwd"
+        password="hashedpwd",
+        role="gestion"
         )
 
     assert status_code == 500
@@ -221,7 +254,8 @@ def test_delete_user_success(db_session):
     user = user_repo.create_user(
         email="test@example.com",
         full_name="Test User",
-        hashed_password="hashedpwd"
+        hashed_password="hashedpwd",
+        role="gestion"
     )
 
     response, status_code = service.delete_user(user.id)
@@ -247,7 +281,8 @@ def test_delete_user_sqlalchemy_error(db_session):
     user_repo.get_user_by_id.return_value = MagicMock(
         id=1,
         email="test@example.com",
-        full_name="Test User"
+        full_name="Test User",
+        role="gestion"
         )
 
     user_repo.delete_user.side_effect = SQLAlchemyError("DB Error")
@@ -267,10 +302,12 @@ def test_authenticate_success(db_session):
     email = "test@example.com"
     full_name = "Test User"
     password = "password123"
+    role = "gestion"
     user = user_repo.create_user(
         email=email,
         full_name=full_name,
-        hashed_password=set_password(password)
+        hashed_password=set_password(password),
+        role=role
     )
 
     authenticated_user = service.authenticate(email, password)
@@ -302,10 +339,12 @@ def test_authenticate_wrong_password(db_session):
     email = "test@example.com"
     full_name = "Test User"
     password = "password123"
+    role = "gestion"
     user = user_repo.create_user(  # noqa: F841
         email=email,
         full_name=full_name,
-        hashed_password=set_password(password)
+        hashed_password=set_password(password),
+        role=role
     )
 
     response, status_code = service.authenticate(email, "wrongpassword")
