@@ -125,6 +125,48 @@ def test_get_user_by_id_sqlalchemy_error(db_session):
     assert response == {"error": "Erreur interne du serveur"}
 
 
+def test_get_user_by_name_success(db_session):
+    """Test de la récupération d'un utilisateur par son nom complet"""
+    user_repo = UserRepository(db_session)
+    service = UserService(user_repo)
+
+    user = user_repo.create_user(
+        email="test@example.com",
+        full_name="Test User",
+        hashed_password="hashedpwd",
+        role="gestion"
+    )
+
+    retrieved_user = service.get_user_by_name(user.full_name)
+
+    assert retrieved_user.email == user.email
+    assert retrieved_user.full_name == user.full_name
+
+
+def test_get_user_by_name_user_not_found(db_session):
+    """Test de la récupération d'un user introuvable par son nom complet"""
+    user_repo = UserRepository(db_session)
+    service = UserService(user_repo)
+
+    response, status_code = service.get_user_by_name(
+        "Non Existant")
+
+    assert status_code == 404
+    assert response == {"error": "Utilisateur introuvable"}
+
+
+def test_get_user_by_name_sqlalchemy_error(db_session):
+    """Test de la gestion d'une exception SQLAlchemyError"""
+    user_repo = MagicMock()
+    user_repo.get_user_by_name.side_effect = SQLAlchemyError("DB Error")
+    service = UserService(user_repo)
+
+    response, status_code = service.get_user_by_name("Error User")
+
+    assert status_code == 500
+    assert response == {"error": "Erreur interne du serveur"}
+
+
 def test_get_user_by_email_success(db_session):
     """Test de la récupération d'un utilisateur par email existant"""
     user_repo = UserRepository(db_session)

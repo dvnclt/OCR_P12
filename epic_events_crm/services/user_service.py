@@ -7,13 +7,11 @@ from services.auth_service import verify_password, set_password
 
 
 class UserService:
-    ROLES = {"gestion", "commercial", "support"}
-
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
 
-    def create_user(self, email: str, full_name: str, password: str,
-                    role: str):
+    def create_user(self, full_name: str, email: str, password: str,
+                    role_id: int):
         """
         Crée un nouvel utilisateur
         Vérifie que l'adresse email n'existe pas déjà
@@ -25,18 +23,12 @@ class UserService:
                 logging.warning(f"Adresse email déjà existante : {email}")
                 return {"error": "Cet adresse email est déjà utilisée"}, 400
 
-            if role not in self.ROLES:
-                logging.warning("Rôle invalide")
-                return {
-                    "error": f"Rôle invalide. Choisir parmi {self.ROLES}"
-                    }, 400
-
             hashed_password = set_password(password)
             new_user = self.user_repo.create_user(
-                email,
                 full_name,
+                email,
                 hashed_password,
-                role
+                role_id
                 )
             return new_user
 
@@ -62,22 +54,22 @@ class UserService:
                           f"{user_id} : {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    # def get_user_by_name(self, full_name: str):
-    #     """
-    #     Récupère un user par son nom complet.
-    #     Retourne une erreur si le user n'existe pas.
-    #     """
-    #     try:
-    #         user = self.user_repo.get_user_by_name(full_name)
-    #         if not user:
-    #             logging.warning(f"Utilisateur introuvable : {full_name}")
-    #             return {"error": "Utilisateur introuvable"}, 404
-    #         return user
+    def get_user_by_name(self, full_name: str):
+        """
+        Récupère un user par son nom complet.
+        Retourne une erreur si le user n'existe pas.
+        """
+        try:
+            user = self.user_repo.get_user_by_name(full_name)
+            if not user:
+                logging.warning(f"Utilisateur introuvable : {full_name}")
+                return {"error": "Utilisateur introuvable"}, 404
+            return user
 
-    #     except Exception as e:
-    #         logging.error("Erreur lors de la récupération de l'utilisateur "
-    #                       f"avec le nom {full_name}: {str(e)}")
-    #         return {"error": "Erreur interne du serveur"}, 500
+        except SQLAlchemyError as e:
+            logging.error("Erreur lors de la récupération de l'utilisateur "
+                          f"avec le nom {full_name}: {str(e)}")
+            return {"error": "Erreur interne du serveur"}, 500
 
     def get_user_by_email(self, email: str):
         """
@@ -98,7 +90,7 @@ class UserService:
 
     def update_user(self, user_id: int, full_name: str = None,
                     email: str = None, password: str = None,
-                    role: str = None):
+                    role_id: int = None):
         """
         Met à jour les informations d'un utilisateur.
         Modifie son nom, email ou mot de passe.
@@ -113,7 +105,7 @@ class UserService:
                 password = set_password(password)
 
             updated_user = self.user_repo.update_user(
-                user_id, full_name, email, password, role)
+                user_id, full_name, email, password, role_id)
             return updated_user
 
         except SQLAlchemyError as e:

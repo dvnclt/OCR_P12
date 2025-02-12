@@ -15,6 +15,7 @@ class Client(Base):
     company_name = Column(String)
     creation_date = Column(Date, default=date.today())
     last_update_date = Column(Date, default=date.today())
+    contact = Column(String)
     user_id = Column(Integer, ForeignKey('users.id'))
 
     contracts = relationship('Contract', back_populates='client')

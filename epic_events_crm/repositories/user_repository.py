@@ -7,11 +7,14 @@ class UserRepository:
     def __init__(self, db_session: Session):
         self.db = db_session
 
-    def create_user(self, email: str, full_name: str,
-                    hashed_password: str, role: str) -> User:
+    def create_user(self, full_name: str, email: str,
+                    hashed_password: str, role_id: int) -> User:
         """ Ajoute un nouvel utilisateur dans la db """
-        new_user = User(email=email, full_name=full_name,
-                        hashed_password=hashed_password, role=role)
+        new_user = User(
+            full_name=full_name,
+            email=email,
+            hashed_password=hashed_password,
+            role_id=role_id)
         self.db.add(new_user)
         self.db.commit()
         self.db.refresh(new_user)
@@ -31,7 +34,7 @@ class UserRepository:
 
     def update_user(self, user_id: int, full_name: str = None,
                     email: str = None, password: str = None,
-                    role: str = None) -> User:
+                    role_id: int = None) -> User:
         """
         Met à jour les informations d'un utilisateur.
         Modifie son nom, email ou mot de passe.
@@ -44,8 +47,8 @@ class UserRepository:
                 user.email = email
             if password:
                 user.hashed_password = password
-            if role:
-                user.role = role
+            if role_id:
+                user.role_id = role_id
             self.db.commit()
             self.db.refresh(user)
         return user

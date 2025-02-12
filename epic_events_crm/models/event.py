@@ -15,6 +15,7 @@ class Event(Base):
     end_date = Column(Date)
     location = Column(String)
     attendees = Column(Integer)
+    contact = Column(String)
     user_id = Column(Integer, ForeignKey('users.id'))
     notes = Column(String)
 
