@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from config.config import Base  # type: ignore
-from models import user, client, contract, event  # noqa: F401, # type: ignore
+from models import user, role, client, contract, event  # noqa: F401, E501, # type: ignore
 
 # Création d'une base de données SQLite en mémoire pour les tests
 TEST_DATABASE_URL = "sqlite:///:memory:"

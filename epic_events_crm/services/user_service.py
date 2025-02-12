@@ -10,14 +10,53 @@ class UserService:
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
 
-    def create_user(self, full_name: str, email: str, password: str,
-                    role_id: int):
+    def authenticate(self, email: str, password: str):
         """
-        Crée un nouvel utilisateur
-        Vérifie que l'adresse email n'existe pas déjà
-        Hash le mdp
+        Vérifie l'email et le mot de passe de l'utilisateur.
+        Retourne l'objet User si l'authentification réussit.
+        Sinon, retourne None.
         """
         try:
+            user = self.user_repo.get_user_by_email(email)
+
+            if not user:
+                logging.warning(f"Échec d'authentification pour {email} : "
+                                "Utilisateur introuvable.")
+                return None
+
+            if not verify_password(user.hashed_password, password):
+                logging.warning(f"Échec d'authentification pour {email} : "
+                                "Mot de passe incorrect.")
+                return None
+
+            return user
+
+        except SQLAlchemyError as e:
+            logging.error(f"Erreur lors de l'authentification pour {email}: "
+                          f"{str(e)}")
+            return None
+
+    def check_permission(self, user, permission_name: str):
+        """
+        Vérifie si l'utilisateur a une permission spécifique.
+        """
+        user_permissions = {perm.name for perm in user.role.permissions}
+        return permission_name in user_permissions
+
+    def create_user(self, user, full_name: str, email: str, password: str,
+                    role_id: int):
+        """
+        Vérifie les permissions du user
+        Vérifie que l'adresse email n'existe pas déjà
+        Hash le mdp
+        Crée un nouvel utilisateur
+        """
+        try:
+            if not self.check_permission(user, "create_user"):
+                logging.warning(f"Permission refusée pour {user.email}: "
+                                "Tentative de création d'un utilisateur")
+                return {"error": "Permission refusée"}, 403
+
             existing_user = self.user_repo.get_user_by_email(email)
             if existing_user:
                 logging.warning(f"Adresse email déjà existante : {email}")
@@ -37,58 +76,76 @@ class UserService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}, 500
 
-    def get_user_by_id(self, user_id: int):
+    def get_user_by_id(self, user, user_id: int):
         """
-        Récupère un utilisateur par son ID.
-        Retourne une erreur si l'utilisateur n'existe pas.
-        """
-        try:
-            user = self.user_repo.get_user_by_id(user_id)
-            if not user:
-                logging.warning("Utilisateur introuvable")
-                return {"error": "Utilisateur introuvable"}, 404
-            return user
-
-        except SQLAlchemyError as e:
-            logging.error(f"Erreur lors de la récupération de l'utilisateur "
-                          f"{user_id} : {str(e)}")
-            return {"error": "Erreur interne du serveur"}, 500
-
-    def get_user_by_name(self, full_name: str):
-        """
-        Récupère un user par son nom complet.
-        Retourne une erreur si le user n'existe pas.
+        Récupère un utilisateur par son ID après vérification des permissions.
         """
         try:
-            user = self.user_repo.get_user_by_name(full_name)
-            if not user:
-                logging.warning(f"Utilisateur introuvable : {full_name}")
+            if not self.check_permission(user, "read_user"):
+                logging.warning(f"Permission refusée pour {user.email}: "
+                                "Tentative de consultation d'un utilisateur")
+                return {"error": "Permission refusée"}, 403
+
+            existing_user = self.user_repo.get_user_by_id(user_id)
+            if not existing_user:
+                logging.warning(f"Utilisateur introuvable avec l'ID {user_id}")
                 return {"error": "Utilisateur introuvable"}, 404
-            return user
+
+            return existing_user
 
         except SQLAlchemyError as e:
-            logging.error("Erreur lors de la récupération de l'utilisateur "
-                          f"avec le nom {full_name}: {str(e)}")
-            return {"error": "Erreur interne du serveur"}, 500
+            logging.error("Erreur lors de la récupération de l'utilisateur : "
+                          f"{str(e)}")
+            return {"error": "Erreur interne"}, 500
 
-    def get_user_by_email(self, email: str):
+    def get_user_by_name(self, user, full_name: str):
         """
-        Récupère un utilisateur par son email.
+        Récupère un user par son nom complet après vérification des
+        permissions.
+        """
+        try:
+            if not self.check_permission(user, "read_user"):
+                logging.warning(f"Permission refusée pour {user.email}: "
+                                "Tentative de consultation d'un utilisateur")
+                return {"error": "Permission refusée"}, 403
+
+            existing_user = self.user_repo.get_user_by_name(full_name)
+            if not existing_user:
+                logging.warning("Utilisateur introuvable avec le nom "
+                                f"{full_name}")
+                return {"error": "Utilisateur introuvable"}, 404
+
+            return existing_user
+
+        except SQLAlchemyError as e:
+            logging.error("Erreur lors de la récupération de l'utilisateur : "
+                          f"{str(e)}")
+            return {"error": "Erreur interne"}, 500
+
+    def get_user_by_email(self, user, email: str):
+        """
+        Récupère un utilisateur par son email si permission.
         Retourne une erreur si l'email n'existe pas.
         """
         try:
-            user = self.user_repo.get_user_by_email(email)
-            if not user:
+            if not self.check_permission(user, "read_user"):
+                logging.warning(f"Permission refusée pour {user.email}: "
+                                "Tentative de consultation d'un utilisateur")
+                return {"error": "Permission refusée"}, 403
+
+            existing_user = self.user_repo.get_user_by_email(email)
+            if not existing_user:
                 logging.warning(f"Utilisateur introuvable depuis : {email}")
                 return {"error": "Utilisateur introuvable"}, 404
-            return user
+
+            return existing_user
 
         except SQLAlchemyError as e:
             logging.error(f"Erreur lors de la récupération de l'utilisateur "
                           f"{email} : {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def update_user(self, user_id: int, full_name: str = None,
+    def update_user(self, user, user_id: int, full_name: str = None,
                     email: str = None, password: str = None,
                     role_id: int = None):
         """
@@ -96,9 +153,14 @@ class UserService:
         Modifie son nom, email ou mot de passe.
         """
         try:
-            user = self.user_repo.get_user_by_id(user_id)
-            if not user:
-                logging.warning("Utilisateur introuvable")
+            if not self.check_permission(user, "update_user"):
+                logging.warning(f"Permission refusée pour {user.email}: "
+                                "Tentative de modification d'un utilisateur")
+                return {"error": "Permission refusée"}, 403
+
+            existing_user = self.user_repo.get_user_by_id(user_id)
+            if not existing_user:
+                logging.warning(f"Utilisateur introuvable avec l'ID {user_id}")
                 return {"error": "Utilisateur introuvable"}, 404
 
             if password:
@@ -113,12 +175,17 @@ class UserService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}, 500
 
-    def delete_user(self, user_id: int):
-        """Supprime un utilisateur par son ID."""
+    def delete_user(self, user, user_id: int):
+        """Supprime un utilisateur par son ID si permission."""
         try:
-            user = self.user_repo.get_user_by_id(user_id)
-            if not user:
-                logging.warning("Utilisateur introuvable")
+            if not self.check_permission(user, "delete_user"):
+                logging.warning(f"Permission refusée pour {user.email}: "
+                                "Tentative de suppression d'un utilisateur")
+                return {"error": "Permission refusée"}, 403
+
+            existing_user = self.user_repo.get_user_by_id(user_id)
+            if not existing_user:
+                logging.warning(f"Utilisateur introuvable avec l'ID {user_id}")
                 return {"error": "Utilisateur introuvable"}, 404
 
             success = self.user_repo.delete_user(user_id)
@@ -129,31 +196,6 @@ class UserService:
                         "l'utilisateur"}, 500
 
         except SQLAlchemyError as e:
-            logging.error("Erreur lors de la suppression de l'utilisateur "
-                          f": {str(e)}")
-            return {"error": "Erreur interne"}, 500
-
-    def authenticate(self, email: str, password: str):
-        """
-        Vérifie l'email et le mot de passe de l'utilisateur.
-        Retourne l'utilisateur si l'authentification réussit, sinon None.
-        """
-        try:
-            user = self.user_repo.get_user_by_email(email)
-
-            if not user:
-                logging.warning(f"Échec d'authentification pour {email} : "
-                                "Utilisateur introuvable.")
-                return {"error": "Utilisateur introuvable"}, 404
-
-            if not verify_password(user.hashed_password, password):
-                logging.warning(f"Échec d'authentification pour {email} : "
-                                "Mot de passe incorrect.")
-                return {"error": "Mot de passe incorrect"}, 401
-
-            return user
-
-        except SQLAlchemyError as e:
-            logging.error(f"Erreur lors de l'authentification pour {email}: "
+            logging.error("Erreur lors de la suppression de l'utilisateur : "
                           f"{str(e)}")
-            return {"error": "Erreur interne du serveur"}, 500
+            return {"error": "Erreur interne"}, 500
