@@ -20,7 +20,7 @@ class ClientRepository:
             email=email,
             phone=phone,
             company_name=company_name,
-            contact=contact,
+            contact=user.full_name if user else None,
             user_id=user.id if user else None
         )
 

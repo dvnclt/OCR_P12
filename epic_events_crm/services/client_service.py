@@ -1,13 +1,16 @@
 import logging
 from sqlalchemy.exc import SQLAlchemyError
+
 from repositories.client_repository import ClientRepository
+from auth_service import require_permission, is_contact
 
 
 class ClientService:
     def __init__(self, client_repo: ClientRepository):
         self.client_repo = client_repo
 
-    def create_client(self, full_name: str, email: str, phone: str,
+    @require_permission("create_client")
+    def create_client(self, user, full_name: str, email: str, phone: str,
                       company_name: str, contact: str):
         """
         Crée un nouveau client après vérification de l'email et de
@@ -28,7 +31,8 @@ class ClientService:
                           f"{str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def get_client_by_id(self, client_id: int):
+    @require_permission("read_client")
+    def get_client_by_id(self, user, client_id: int):
         """Récupère un client par ID, renvoie une erreur si non trouvé."""
         try:
             client = self.client_repo.get_client_by_id(client_id)
@@ -42,7 +46,8 @@ class ClientService:
                           f"{client_id}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def get_client_by_name(self, full_name: str):
+    @require_permission("read_client")
+    def get_client_by_name(self, user, full_name: str):
         """
         Récupère un client par nom complet, renvoie une erreur si non trouvé.
         """
@@ -58,7 +63,8 @@ class ClientService:
                           f"{full_name}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def get_client_by_email(self, email: str):
+    @require_permission("read_client")
+    def get_client_by_email(self, user, email: str):
         """Récupère un client par email, renvoie une erreur si non trouvé."""
         try:
             client = self.client_repo.get_client_by_email(email)
@@ -72,7 +78,8 @@ class ClientService:
                           f"{email}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def update_client(self, client_id: int, full_name: str = None,
+    @require_permission("update_client", object_check=is_contact)
+    def update_client(self, user, client_id: int, full_name: str = None,
                       email: str = None, phone: str = None,
                       company_name: str = None, contact: str = None):
         """
@@ -103,7 +110,8 @@ class ClientService:
                           f"{client_id}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def delete_client(self, client_id: int):
+    @require_permission("delete_client")
+    def delete_client(self, user, client_id: int):
         """Supprime un client par son ID avec vérification préalable."""
         try:
             client = self.client_repo.get_client_by_id(client_id)

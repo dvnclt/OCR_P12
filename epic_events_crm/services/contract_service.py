@@ -3,13 +3,15 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from repositories.contract_repository import ContractRepository
 from models.client import Client
+from auth_service import require_permission, is_contact
 
 
 class ContractService:
     def __init__(self, contract_repo: ContractRepository):
         self.contract_repo = contract_repo
 
-    def create_contract(self, client_id: int, contract_amount: float,
+    @require_permission("create_contract")
+    def create_contract(self, user, client_id: int, contract_amount: float,
                         contract_status: str, contact: str):
         """
         Crée un nouveau contrat dans la base de données.
@@ -32,7 +34,8 @@ class ContractService:
             logging.error(f"Erreur lors de la création du contrat : {str(e)}")
             return {"error": "Erreur interne"}, 500
 
-    def get_contract_by_id(self, contract_id: int):
+    @require_permission("read_contract")
+    def get_contract_by_id(self, user, contract_id: int):
         """
         Récupère un contrat par son ID.
         Retourne une erreur si le contrat n'existe pas.
@@ -49,7 +52,8 @@ class ContractService:
                           f"{contract_id}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def get_contracts_by_client(self, client_id: int):
+    @require_permission("read_contract")
+    def get_contracts_by_client(self, user, client_id: int):
         """
         Récupère tous les contrats liés à un client donné.
         Retourne une erreur si aucun contrat n'est trouvé.
@@ -69,7 +73,8 @@ class ContractService:
                           f"client {client_id}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def get_contracts_by_user(self, user_id: int):
+    @require_permission("read_contract")
+    def get_contracts_by_user(self, user, user_id: int):
         """
         Récupère tous les contrats assignés à un utilisateur donné.
         Retourne une erreur si aucun contrat n'est trouvé.
@@ -87,7 +92,9 @@ class ContractService:
                           f"l'utilisateur {user_id}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def update_contract(self, contract_id: int, contract_amount: float = None,
+    @require_permission("update_contract", object_check=is_contact)
+    def update_contract(self, user, contract_id: int,
+                        contract_amount: float = None,
                         remaining_amount: float = None,
                         contract_status: str = None, contact: str = None):
         """
@@ -111,7 +118,8 @@ class ContractService:
                           f"{contract_id} : {str(e)}")
             return {"error": "Erreur interne"}, 500
 
-    def record_payment(self, contract_id: int, payment_amount: float):
+    @require_permission("update_contract", object_check=is_contact)
+    def record_payment(self, user, contract_id: int, payment_amount: float):
         """
         Effectue un paiement et met à jour le montant restant du contrat.
         """
@@ -145,7 +153,8 @@ class ContractService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}, 500
 
-    def delete_contract(self, contract_id: int):
+    @require_permission("delete_contract")
+    def delete_contract(self, user, contract_id: int):
         """
         Supprime un contrat par son ID.
         Retourne une erreur si le contrat n'existe pas.

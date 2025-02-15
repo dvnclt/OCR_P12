@@ -5,13 +5,15 @@ from repositories.event_repository import EventRepository
 from models.client import Client
 from models.contract import Contract
 from models.user import User
+from auth_service import require_permission, is_contact
 
 
 class EventService:
     def __init__(self, event_repo: EventRepository):
         self.event_repo = event_repo
 
-    def create_event(self, name: str, contract_id: int, client_id: int,
+    @require_permission("create_event", object_check=is_contact)
+    def create_event(self, user, name: str, contract_id: int, client_id: int,
                      start_date: str, end_date: str, location: str,
                      attendees: int, contact: str, user_id: int, notes: str):
         """
@@ -33,10 +35,10 @@ class EventService:
                 logging.warning(f"Client introuvable : {client_id}")
                 return {"error": "Client introuvable"}, 404
 
-            user = self.event_repo.db.query(User).filter(
+            contact_user = self.event_repo.db.query(User).filter(
                 User.id == user_id
                 ).first()
-            if not user:
+            if not contact_user:
                 logging.warning(f"Utilisateur introuvable : {user_id}")
                 return {"error": "Utilisateur introuvable"}, 404
 
@@ -51,7 +53,8 @@ class EventService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}, 500
 
-    def get_event_by_id(self, event_id: int):
+    @require_permission("read_event")
+    def get_event_by_id(self, user, event_id: int):
         """
         Récupère un événement par son ID.
         Retourne une erreur si l'événement n'existe pas.
@@ -68,7 +71,8 @@ class EventService:
                           f"{event_id}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def get_events_by_contract(self, contract_id: int):
+    @require_permission("read_event")
+    def get_events_by_contract(self, user, contract_id: int):
         """
         Récupère tous les événements associés à un contrat donné.
         Retourne une erreur si aucun événement n'est trouvé.
@@ -86,7 +90,8 @@ class EventService:
                           f"contrat {contract_id}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def get_events_by_client(self, client_id: int):
+    @require_permission("read_event")
+    def get_events_by_client(self, user, client_id: int):
         """
         Récupère tous les événements associés à un client donné.
         Retourne une erreur si aucun événement n'est trouvé.
@@ -104,7 +109,8 @@ class EventService:
                           f"client {client_id}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def get_events_by_user(self, user_id: int):
+    @require_permission("read_event")
+    def get_events_by_user(self, user, user_id: int):
         """
         Récupère tous les événements associés à un utilisateur donné.
         Retourne une erreur si aucun événement n'est trouvé.
@@ -122,7 +128,8 @@ class EventService:
                           f"l'utilisateur {user_id}: {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
-    def update_event(self, event_id: int, name: str = None,
+    @require_permission("update_event", object_check=is_contact)
+    def update_event(self, user, event_id: int, name: str = None,
                      contract_id: int = None, client_id: int = None,
                      start_date: str = None, end_date: str = None,
                      location: str = None, attendees: int = None,
@@ -149,7 +156,8 @@ class EventService:
                           f"{event_id}: {str(e)}")
             return {"error": "Erreur interne"}, 500
 
-    def delete_event(self, event_id: int):
+    @require_permission("delete_event")
+    def delete_event(self, user, event_id: int):
         """
         Supprime un événement par son ID.
         Retourne une erreur si l'événement n'existe pas.

@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.exc import SQLAlchemyError
 
 from repositories.user_repository import UserRepository
-from services.auth_service import verify_password, set_password
+from services.auth_service import verify_password, set_password, require_permission  # noqa: E501
 
 
 class UserService:
@@ -36,13 +36,7 @@ class UserService:
                           f"{str(e)}")
             return None
 
-    def check_permission(self, user, permission_name: str):
-        """
-        Vérifie si l'utilisateur a une permission spécifique.
-        """
-        user_permissions = {perm.name for perm in user.role.permissions}
-        return permission_name in user_permissions
-
+    @require_permission("create_user")
     def create_user(self, user, full_name: str, email: str, password: str,
                     role_id: int):
         """
@@ -52,11 +46,6 @@ class UserService:
         Crée un nouvel utilisateur
         """
         try:
-            if not self.check_permission(user, "create_user"):
-                logging.warning(f"Permission refusée pour {user.email}: "
-                                "Tentative de création d'un utilisateur")
-                return {"error": "Permission refusée"}, 403
-
             existing_user = self.user_repo.get_user_by_email(email)
             if existing_user:
                 logging.warning(f"Adresse email déjà existante : {email}")
@@ -76,16 +65,12 @@ class UserService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}, 500
 
+    @require_permission("read_user")
     def get_user_by_id(self, user, user_id: int):
         """
         Récupère un utilisateur par son ID après vérification des permissions.
         """
         try:
-            if not self.check_permission(user, "read_user"):
-                logging.warning(f"Permission refusée pour {user.email}: "
-                                "Tentative de consultation d'un utilisateur")
-                return {"error": "Permission refusée"}, 403
-
             existing_user = self.user_repo.get_user_by_id(user_id)
             if not existing_user:
                 logging.warning(f"Utilisateur introuvable avec l'ID {user_id}")
@@ -98,17 +83,13 @@ class UserService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}, 500
 
+    @require_permission("read_user")
     def get_user_by_name(self, user, full_name: str):
         """
         Récupère un user par son nom complet après vérification des
         permissions.
         """
         try:
-            if not self.check_permission(user, "read_user"):
-                logging.warning(f"Permission refusée pour {user.email}: "
-                                "Tentative de consultation d'un utilisateur")
-                return {"error": "Permission refusée"}, 403
-
             existing_user = self.user_repo.get_user_by_name(full_name)
             if not existing_user:
                 logging.warning("Utilisateur introuvable avec le nom "
@@ -122,17 +103,13 @@ class UserService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}, 500
 
+    @require_permission("read_user")
     def get_user_by_email(self, user, email: str):
         """
         Récupère un utilisateur par son email si permission.
         Retourne une erreur si l'email n'existe pas.
         """
         try:
-            if not self.check_permission(user, "read_user"):
-                logging.warning(f"Permission refusée pour {user.email}: "
-                                "Tentative de consultation d'un utilisateur")
-                return {"error": "Permission refusée"}, 403
-
             existing_user = self.user_repo.get_user_by_email(email)
             if not existing_user:
                 logging.warning(f"Utilisateur introuvable depuis : {email}")
@@ -145,6 +122,7 @@ class UserService:
                           f"{email} : {str(e)}")
             return {"error": "Erreur interne du serveur"}, 500
 
+    @require_permission("update_user")
     def update_user(self, user, user_id: int, full_name: str = None,
                     email: str = None, password: str = None,
                     role_id: int = None):
@@ -153,11 +131,6 @@ class UserService:
         Modifie son nom, email ou mot de passe.
         """
         try:
-            if not self.check_permission(user, "update_user"):
-                logging.warning(f"Permission refusée pour {user.email}: "
-                                "Tentative de modification d'un utilisateur")
-                return {"error": "Permission refusée"}, 403
-
             existing_user = self.user_repo.get_user_by_id(user_id)
             if not existing_user:
                 logging.warning(f"Utilisateur introuvable avec l'ID {user_id}")
@@ -175,14 +148,10 @@ class UserService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}, 500
 
+    @require_permission("delete_user")
     def delete_user(self, user, user_id: int):
         """Supprime un utilisateur par son ID si permission."""
         try:
-            if not self.check_permission(user, "delete_user"):
-                logging.warning(f"Permission refusée pour {user.email}: "
-                                "Tentative de suppression d'un utilisateur")
-                return {"error": "Permission refusée"}, 403
-
             existing_user = self.user_repo.get_user_by_id(user_id)
             if not existing_user:
                 logging.warning(f"Utilisateur introuvable avec l'ID {user_id}")
