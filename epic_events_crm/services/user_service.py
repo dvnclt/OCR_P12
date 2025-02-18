@@ -2,6 +2,7 @@ import logging
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from utils.jwt_utils import create_access_token
 from repositories.user_repository import UserRepository
 from services.auth_service import verify_password, set_password, require_permission  # noqa: E501
 
@@ -29,7 +30,9 @@ class UserService:
                                 "Mot de passe incorrect.")
                 return None
 
-            return user
+            token = create_access_token(data={"sub": str(user.id)})
+
+            return token
 
         except SQLAlchemyError as e:
             logging.error(f"Erreur lors de l'authentification pour {email}: "
@@ -37,7 +40,7 @@ class UserService:
             return None
 
     @require_permission("create_user")
-    def create_user(self, user, full_name: str, email: str, password: str,
+    def create_user(self, full_name: str, email: str, password: str,
                     role_id: int):
         """
         Vérifie les permissions du user
@@ -66,7 +69,7 @@ class UserService:
             return {"error": "Erreur interne"}, 500
 
     @require_permission("read_user")
-    def get_user_by_id(self, user, user_id: int):
+    def get_user_by_id(self, user_id: int):
         """
         Récupère un utilisateur par son ID après vérification des permissions.
         """
@@ -84,7 +87,7 @@ class UserService:
             return {"error": "Erreur interne"}, 500
 
     @require_permission("read_user")
-    def get_user_by_name(self, user, full_name: str):
+    def get_user_by_name(self, full_name: str):
         """
         Récupère un user par son nom complet après vérification des
         permissions.
@@ -104,7 +107,7 @@ class UserService:
             return {"error": "Erreur interne"}, 500
 
     @require_permission("read_user")
-    def get_user_by_email(self, user, email: str):
+    def get_user_by_email(self, email: str):
         """
         Récupère un utilisateur par son email si permission.
         Retourne une erreur si l'email n'existe pas.
@@ -123,7 +126,7 @@ class UserService:
             return {"error": "Erreur interne du serveur"}, 500
 
     @require_permission("update_user")
-    def update_user(self, user, user_id: int, full_name: str = None,
+    def update_user(self, user_id: int, full_name: str = None,
                     email: str = None, password: str = None,
                     role_id: int = None):
         """
@@ -149,7 +152,7 @@ class UserService:
             return {"error": "Erreur interne"}, 500
 
     @require_permission("delete_user")
-    def delete_user(self, user, user_id: int):
+    def delete_user(self, user_id: int):
         """Supprime un utilisateur par son ID si permission."""
         try:
             existing_user = self.user_repo.get_user_by_id(user_id)

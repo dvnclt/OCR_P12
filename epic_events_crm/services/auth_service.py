@@ -1,10 +1,36 @@
 import functools
 import logging
+import os
 
 from argon2 import PasswordHasher
 from argon2.exceptions import Argon2Error, InvalidHashError
 
+from utils.jwt_utils import get_current_user
+
 ph = PasswordHasher()
+
+TOKEN_FILE = os.path.expanduser("~/.epic_events_token")
+
+
+def set_token(token: str):
+    """Stocke le token de manière persistante dans un fichier."""
+    with open(TOKEN_FILE, "w") as f:
+        f.write(token)
+
+
+def get_token():
+    """Récupère le token depuis le fichier, s'il existe."""
+    if not os.path.exists(TOKEN_FILE):
+        return None
+    with open(TOKEN_FILE, "r") as f:
+        token = f.read().strip()
+    return token
+
+
+def clear_token():
+    """Supprime le token du fichier."""
+    if os.path.exists(TOKEN_FILE):
+        os.remove(TOKEN_FILE)
 
 
 def set_password(password: str) -> str:
@@ -30,7 +56,7 @@ def check_permission(user, permission_name: str):
     return permission_name in user_permissions
 
 
-def require_permission(permission, object_check=None):
+def require_permission(permission):
     """
     Décorateur pour vérifier une permission + une condition sur un objet.
 
@@ -39,23 +65,23 @@ def require_permission(permission, object_check=None):
     """
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(self, user, obj_id, *args, **kwargs):
-            # Récupération de l'objet client
-            obj = self.client_repo.get_client_by_id(obj_id)
-            if not obj:
-                logging.warning(f"Client ID {obj_id} introuvable")
-                return {"error": "Client introuvable"}, 404
+        def wrapper(self, *args, **kwargs):
+            # Récupération de l'utilisateur à partir du contexte
+            token = get_token()
+            if not token:
+                raise Exception("Token manquant ! Authentifiez-vous d'abord.")
+            user = get_current_user(token, self.user_repo)
+            if not user:
+                logging.warning("Utilisateur non authentifié.")
+                return {"error": "Utilisateur non authentifié"}, 401
 
             # Vérifier la permission globale
             if not check_permission(user, permission):
-                # Vérifier une condition spécifique
-                if object_check and not object_check(user, obj):
-                    logging.warning(f"Permission refusée pour {user.email}: "
-                                    "Tentative de modification du client "
-                                    f"{obj_id}")
-                    return {"error": "Permission refusée"}, 403
+                logging.warning("Permission refusée pour {user.email} : "
+                                f"{permission}")
+                return {"error": "Permission refusée"}, 403
 
-            return func(self, user, obj, *args, **kwargs)
+            return func(self, *args, **kwargs)
         return wrapper
     return decorator
 

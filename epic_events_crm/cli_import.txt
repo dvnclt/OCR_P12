@@ -1,0 +1,24 @@
+from commands.client import client_group
+from commands.contract import contract_group
+from commands.event import event_group
+
+
+from services.client_service import ClientService
+from services.contract_service import ContractService
+from services.event_service import EventService
+
+from repositories.client_repository import ClientRepository
+from repositories.contract_repository import ContractRepository
+from repositories.event_repository import EventRepository
+
+
+Création des objets services
+
+client_repo = ClientRepository(db_session)
+contract_repo = ContractRepository(db_session)
+event_repo = EventRepository(db_session)
+
+
+client_service = ClientService(client_repo)
+contract_service = ContractService(contract_repo)
+event_service = EventService(event_repo)
