@@ -58,10 +58,7 @@ def check_permission(user, permission_name: str):
 
 def require_permission(permission):
     """
-    Décorateur pour vérifier une permission + une condition sur un objet.
-
-    :param permission: Nom de la permission requise.
-    :param object_check: Fonction qui prend (user, obj) et retourne True/False.
+    Décorateur pour vérifier une permission
     """
     def decorator(func):
         @functools.wraps(func)
@@ -69,10 +66,10 @@ def require_permission(permission):
             # Récupération de l'utilisateur à partir du contexte
             token = get_token()
             if not token:
-                raise Exception("Token manquant ! Authentifiez-vous d'abord.")
+                raise Exception("Authentification requise")
             user = get_current_user(token, self.user_repo)
             if not user:
-                logging.warning("Utilisateur non authentifié.")
+                logging.warning("Utilisateur non authentifié")
                 return {"error": "Utilisateur non authentifié"}, 401
 
             # Vérifier la permission globale

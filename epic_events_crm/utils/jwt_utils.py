@@ -1,5 +1,6 @@
 import jwt
 import datetime
+import logging
 
 from typing import Optional
 from config.config import SECRET_KEY
@@ -37,13 +38,14 @@ def get_current_user(token: str, user_repo: UserRepository) -> Optional[dict]:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id = payload.get("sub")
         if not user_id:
-            return None
+            return {"error": "Utilisateur introuvable"}
 
         user = user_repo.get_user_by_id(user_id)
         return user
     except jwt.ExpiredSignatureError:
-        print("Le token a expiré")
-        return None
+        logging.debug("Le token a expiré")
+        return {"error": "Token expiré: Reconnectez-vous"}
+
     except jwt.InvalidTokenError:
-        print("Token invalide")
-        return None
+        logging.debug("Token invalide")
+        return {"error": "Token invalide: Reconnectez-vous"}
