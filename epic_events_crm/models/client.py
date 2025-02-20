@@ -9,7 +9,7 @@ class Client(Base):
     __tablename__ = 'clients'
 
     id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String, index=True)
+    full_name = Column(String)
     email = Column(String, unique=True, index=True)
     phone = Column(String)
     company_name = Column(String)

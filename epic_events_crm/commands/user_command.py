@@ -3,6 +3,7 @@ import click
 from config.config import SessionLocal
 from services.user_service import UserService
 from repositories.user_repository import UserRepository
+from utils.utils import ROLE_MAPPING
 
 
 db_session = SessionLocal()
@@ -25,15 +26,22 @@ def user_group():
               help='L\'email de l\'utilisateur.')
 @click.option('--password', prompt='Mot de passe de l\'utilisateur',
               help='Mot de passe de l\'utilisateur.', hide_input=True)
-@click.option('--role_id', prompt='ID du rôle de l\'utilisateur',
-              help='ID du rôle de utilisateur (2 = gestion, 3 = commercial, 4 = support).')  # noqa =: E501
-def create(full_name, email, password, role_id):
+@click.option('--role_name', prompt='Rôle de l\'utilisateur',
+              help='Rôle de utilisateur (gestion, commercial, support).')
+def create(full_name, email, password, role_name):
     """Crée un nouvel utilisateur dans le CRM."""
+
+    role_id = ROLE_MAPPING.get(role_name.lower())
+
+    if not role_id:
+        click.echo(f"❌ Erreur : Le rôle '{role_name}' est invalide. "
+                   "Choisissez parmi : gestion, commercial, support.")
+        raise click.Abort()
 
     confirm = click.confirm(
         f"❗ Êtes-vous sûr de vouloir créer l'utilisateur {full_name} ?\n"
         f"email : {email}\n"
-        f"role : {role_id}\n"
+        f"role : {role_name}\n"
     )
 
     if not confirm:
@@ -54,47 +62,11 @@ def create(full_name, email, password, role_id):
     click.echo(f"✅ Création de l'utilisateur {full_name} réussie.")
 
 
-# Commande pour récupérer un utilisateur par ID
-@user_group.command()
-@click.option('--user_id', prompt='ID de l\'utilisateur',
-              help='ID de l\'utilisateur à récupérer.', type=int)
-def get_by_id(user_id):
-    """Récupère un utilisateur par son ID."""
-
-    user = user_service.get_user_by_id(user_id)
-
-    if isinstance(user, dict) and "error" in user:
-        click.echo(f"❌ Erreur : {user['error']}")
-    else:
-        click.echo(
-            f"👤 Utilisateur trouvé : {user.id} {user.full_name} {user.email} "
-            f"{user.role.name}"
-            )
-
-
-# Commande pour récupérer un utilisateur par son nom complet
-@user_group.command()
-@click.option('--full_name', prompt='Nom complet de l\'utilisateur',
-              help='Nom complet de l\'utilisateur à récupérer.')
-def get_by_name(full_name):
-    """Récupère un utilisateur par son nom complet."""
-
-    user = user_service.get_user_by_name(full_name)
-
-    if isinstance(user, dict) and "error" in user:
-        click.echo(f"❌ Erreur : {user['error']}")
-    else:
-        click.echo(
-            f"👤 Utilisateur trouvé : {user.id} {user.full_name} {user.email} "
-            f"{user.role.name}"
-            )
-
-
-# Commande pour récupérer un utilisateur par email
+# Commande pour récupérer un utilisateur par son email
 @user_group.command()
 @click.option('--email', prompt='Email de l\'utilisateur',
               help='Email de l\'utilisateur à récupérer.')
-def get_by_email(email):
+def get(email):
     """Récupère un utilisateur par son email."""
 
     user = user_service.get_user_by_email(email)
@@ -122,6 +94,8 @@ def update(email):
         click.echo("❌ Erreur : Utilisateur introuvable.")
         raise click.Abort()
 
+    user_id = user.id
+
     click.echo(f"👤 Utilisateur trouvé : {user.full_name} - {user.email} - "
                f"{user.role.name}")
 
@@ -129,18 +103,25 @@ def update(email):
     full_name = click.prompt("Nouveau nom complet (laisser vide pour ne pas "
                              "changer)",
                              default=user.full_name, show_default=True)
-    new_email = click.prompt("Nouvelle adresse email (laisser vide pour ne pas"
-                             " changer)", default=user.email,
-                             show_default=True)
+    email = click.prompt("Nouvelle adresse email (laisser vide pour ne "
+                         "pas changer)", default=user.email,
+                         show_default=True)
     password = click.prompt("Nouveau mot de passe (laisser vide pour ne pas "
                             "changer)", default="", hide_input=True)
-    role_id = click.prompt("Nouvel ID de rôle (laisser vide pour ne pas "
-                           "changer)", default=user.role.id, show_default=True)
+    role_name = click.prompt("Nouveau rôle (laisser vide pour ne pas changer)",
+                             default=user.role.name, show_default=True)
+
+    role_id = ROLE_MAPPING.get(role_name.lower())
+
+    if not role_id:
+        click.echo(f"❌ Erreur : Le rôle '{role_name}' est invalide. "
+                   "Choisissez parmi : gestion, commercial, support.")
+        raise click.Abort()
 
     # Si aucun changement, annule l'opération
     if (
         full_name == user.full_name
-        and new_email == user.email
+        and email == user.email
         and not password
         and int(role_id) == user.role.id
     ):
@@ -150,9 +131,9 @@ def update(email):
     confirm = click.confirm(
         f"❗ Valider les modifications suivantes ?\n"
         f"{user.full_name} => {full_name}\n"
-        f"{user.email} => {new_email}\n"
+        f"{user.email} => {email}\n"
         f"Mot de passe\n"
-        f"{user.role_id} => {role_id}\n"
+        f"{user.role.name} => {role_name}\n"
     )
 
     if not confirm:
@@ -161,9 +142,9 @@ def update(email):
 
     # Applique la mise à jour
     updated_user = user_service.update_user(
-        email=email,
+        user_id=user_id,
         full_name=full_name if full_name != user.full_name else None,
-        new_email=new_email if new_email != user.email else None,
+        email=email if email != user.email else None,
         password=password if password else None,
         role_id=int(role_id) if int(role_id) != user.role.id else None
     )
@@ -175,6 +156,7 @@ def update(email):
     click.echo(f"✅ Mise à jour réussie pour {updated_user.full_name}.")
 
 
+# Commande pour supprimer un utilisateur via son email
 @user_group.command()
 @click.option('--email', prompt="Email de l'utilisateur à supprimer",
               help="Email de l'utilisateur à supprimer.")

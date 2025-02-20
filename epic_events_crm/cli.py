@@ -7,7 +7,8 @@ from services.auth_service import set_token, get_token, clear_token
 from utils.jwt_utils import get_current_user
 
 
-from commands.user import user_group
+from commands.user_command import user_group
+from commands.client_command import client_group
 
 
 db_session = SessionLocal()
@@ -62,7 +63,7 @@ def logout():
 
 # Ajout de sous-commandes sous chaque groupe
 main.add_command(user_group)
-# main.add_command(client_group)
+main.add_command(client_group)
 # main.add_command(contract_group)
 # main.add_command(event_group)
 
