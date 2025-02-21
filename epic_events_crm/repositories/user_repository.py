@@ -26,7 +26,7 @@ class UserRepository:
 
     def get_user_by_name(self, full_name: int) -> User:
         """ Récupère un utilisateur par son nom complet. """
-        return self.db.query(User).filter(User.full_name == full_name).first()
+        return self.db.query(User).filter(User.full_name == full_name).all()
 
     def get_user_by_email(self, email: str) -> User:
         """ Récupère un utilisateur par son adresse email. """

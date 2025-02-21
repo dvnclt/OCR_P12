@@ -3,7 +3,7 @@ import click
 from config.config import SessionLocal
 from services.user_service import UserService
 from repositories.user_repository import UserRepository
-from utils.utils import ROLE_MAPPING
+from utils.utils import ROLE_MAPPING, is_email_valid, is_password_valid
 
 
 db_session = SessionLocal()
@@ -20,64 +20,111 @@ def user_group():
 
 # Commande pour créer un utilisateur
 @user_group.command()
-@click.option('--full_name', prompt='Nom complet de l\'utilisateur',
-              help='Nom complet de l\'utilisateur.')
-@click.option('--email', prompt='Email de l\'utilisateur',
-              help='L\'email de l\'utilisateur.')
-@click.option('--password', prompt='Mot de passe de l\'utilisateur',
-              help='Mot de passe de l\'utilisateur.', hide_input=True)
-@click.option('--role_name', prompt='Rôle de l\'utilisateur',
-              help='Rôle de utilisateur (gestion, commercial, support).')
-def create(full_name, email, password, role_name):
+def create():
     """Crée un nouvel utilisateur dans le CRM."""
 
-    role_id = ROLE_MAPPING.get(role_name.lower())
+    # Demande le nom complet
+    full_name = click.prompt('Nom complet de l\'utilisateur')
 
-    if not role_id:
-        click.echo(f"❌ Erreur : Le rôle '{role_name}' est invalide. "
-                   "Choisissez parmi : gestion, commercial, support.")
-        raise click.Abort()
+    # Demande et vérifie l'adresse email
+    while True:
+        email = click.prompt('Email de l\'utilisateur')
+        if not is_email_valid(email):
+            click.echo(f"❌ Erreur : L'email '{email}' est invalide.")
+        else:
+            break
 
+    # Demande et vérifie le mot de passe
+    while True:
+        password = click.prompt('Mot de passe de l\'utilisateur',
+                                hide_input=True)
+        if not is_password_valid(password):
+            click.echo("❌ Erreur : Le mot de passe doit comporter au moins 8 "
+                       "caractères et un chiffre")
+            password = click.prompt("Veuillez entrer un mot de passe valide",
+                                    hide_input=True)
+        else:
+            break
+
+    # Demande et vérifie le rôle
+    while True:
+        role_name = click.prompt('Rôle de l\'utilisateur')
+        role_id = ROLE_MAPPING.get(role_name.lower())
+        if not role_id:
+            click.echo(f"❌ Erreur : Le rôle '{role_name}' est invalide. "
+                       "Choisissez parmi : Gestion, Commercial, Support.")
+        else:
+            break
+
+    # Confirme la création de l'utilisateur
     confirm = click.confirm(
-        f"❗ Êtes-vous sûr de vouloir créer l'utilisateur {full_name} ?\n"
-        f"email : {email}\n"
-        f"role : {role_name}\n"
+        f"❗ Confirmer la création ? :\n"
+        f"Nom : {full_name} \n"
+        f"Email : {email}\n"
+        f"Rôle : {role_name}\n"
     )
-
     if not confirm:
         click.echo("ℹ️ Opération annulée.")
         return
 
+    # Créé l'utilisateur
     user = user_service.create_user(
         full_name=full_name,
         email=email,
         password=password,
         role_id=role_id
-        )
+    )
 
     if isinstance(user, dict) and "error" in user:
         click.echo(f"❌ Erreur : {user['error']}")
-        raise click.Abort()
 
     click.echo(f"✅ Création de l'utilisateur {full_name} réussie.")
 
 
-# Commande pour récupérer un utilisateur par son email
+# Commande pour récupérer un utilisateur par ID, email ou nom complet
 @user_group.command()
-@click.option('--email', prompt='Email de l\'utilisateur',
-              help='Email de l\'utilisateur à récupérer.')
-def get(email):
-    """Récupère un utilisateur par son email."""
+@click.argument('identifier', required=False)
+def get(identifier):
+    """Récupère un utilisateur par ID, email ou nom complet."""
 
-    user = user_service.get_user_by_email(email)
+    # Si aucun argument n'est passé, demande à l'utilisateur
+    if not identifier:
+        identifier = click.prompt(
+            'Veuillez entrer un ID, un email ou un nom complet',
+            type=str
+        )
 
-    if isinstance(user, dict) and "error" in user:
-        click.echo(f"❌ Erreur : {user['error']}")
+    # Vérifie si l'input est un ID (entier)
+    if identifier.isdigit():
+        user = user_service.get_user_by_id(int(identifier))
+    # Vérifie si l'input est un email (présence du "@")
+    elif "@" in identifier:
+        user = user_service.get_user_by_email(identifier)
+    # Sinon, considère que c'est un nom complet
     else:
-        click.echo(
-            f"👤 Utilisateur trouvé : {user.id} {user.full_name} {user.email} "
-            f"{user.role.name}"
+        users = user_service.get_user_by_name(identifier)
+
+    # Gestion des erreurs et affichage du résultat
+    if isinstance(users, dict) and "error" in users:
+        click.echo(f"❌ Erreur : {users['error']}")
+    else:
+        if len(users) == 1:
+            user = users[0]
+            click.echo(
+                f"👤 {user.full_name}\n"
+                f"ID : {user.id}\n"
+                f"Email : {user.email}\n"
+                f"Rôle : {user.role.name}\n"
             )
+        elif len(users) > 1:
+            click.echo("Plusieurs utilisateurs ont été trouvés :")
+            for user in users:
+                click.echo(
+                    f"👤 {user.full_name}\n"
+                    f"ID : {user.id}\n"
+                    f"Email : {user.email}\n"
+                    f"Rôle : {user.role.name}\n"
+                )
 
 
 # Commande pour mettre à jour un utilisateur via son email

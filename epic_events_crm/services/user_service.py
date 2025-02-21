@@ -3,7 +3,6 @@ import logging
 from sqlalchemy.exc import SQLAlchemyError
 
 from utils.jwt_utils import create_access_token
-from utils.utils import is_email_valid
 from repositories.user_repository import UserRepository
 from services.auth_service import clear_token, verify_password, set_password  # noqa: E501
 
@@ -65,16 +64,13 @@ class UserService:
         Crée un nouvel utilisateur
         """
         try:
-            if not is_email_valid(email):
-                logging.debug(f"Adresse email invalide : {email}")
-                return {"error": "Format d'email invalide"}
-
             existing_user = self.user_repo.get_user_by_email(email)
             if existing_user:
                 logging.debug(f"Adresse email déjà existante : {email}")
                 return {"error": "Cet adresse email est déjà utilisée"}
 
             hashed_password = set_password(password)
+
             new_user = self.user_repo.create_user(
                 full_name,
                 email,
