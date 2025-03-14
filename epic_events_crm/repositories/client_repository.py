@@ -37,6 +37,10 @@ class ClientRepository:
         """ Récupère un client par son adresse email """
         return self.db.query(Client).filter(Client.email == email).first()
 
+    def get_client_by_name(self, full_name: str) -> User:
+        """ Récupère un utilisateur par son nom complet. """
+        return self.db.query(Client).filter(Client.full_name == full_name).all()  # noqa: E501
+
     def update_client(self, client_id: int, full_name: str = None,
                       email: str = None, phone: str = None,
                       company_name: str = None, contact: str = None) -> Client:

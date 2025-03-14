@@ -3,33 +3,55 @@ import logging
 from sqlalchemy.exc import SQLAlchemyError
 
 from utils.jwt_utils import create_access_token
+from utils.utils import is_email_valid
 from repositories.user_repository import UserRepository
 from services.auth_service import clear_token, verify_password, set_password  # noqa: E501
 
 
 class UserService:
     def __init__(self, user_repo: UserRepository):
+        """
+        Initialisation du service
+
+        Args:
+            user_repo (UserRepository): Instance de UserRepository
+        """
         self.user_repo = user_repo
 
     def authenticate(self, email: str, password: str):
         """
-        Vérifie l'email et le mot de passe de l'utilisateur.
-        Retourne l'objet User si l'authentification réussit.
-        Sinon, retourne None.
+        Authentification d'un utilisateur
+
+        Args:
+            email (str): Email de l'utilisateur
+            password (str): Mot de passe de l'utilisateur
+
+        Returns:
+            str or dict: Token si succès sinon message d'erreur.
+
+        Raises:
+            SQLAlchemyError: En cas d'erreur avec la base de données.
         """
         try:
+            # Formate l'adresse email
+            email = email.strip().lower()
+
+            # Recherche l'user
             user = self.user_repo.get_user_by_email(email)
 
+            # Erreur si email non trouvé
             if not user:
                 logging.debug(f"Échec d'authentification pour {email} : "
                               "Utilisateur introuvable.")
                 return {"error": "Utilisateur introuvable"}
 
+            # Erreur si mdp ne correspond pas
             if not verify_password(user.hashed_password, password):
                 logging.debug(f"Échec d'authentification pour {email} : "
                               "Mot de passe incorrect.")
                 return {"error": "Mot de passe incorrect"}
 
+            # Créé un token
             token = create_access_token(data={"sub": str(user.id)})
 
             return token
@@ -41,12 +63,19 @@ class UserService:
 
     def logout(self):
         """
-        Invalide le token JWT en le supprimant.
-        Retourne un message de confirmation.
+        Déconnexion d'un utilisateur
+
+        Returns:
+            dict: Message de confirmation
+
+        Raises:
+            SQLAlchemyError: En cas d'erreur avec la base de données.
         """
         try:
+            # Supprime le token
             clear_token()
 
+            # Confirme la déconnexion
             logging.info("Utilisateur déconnecté")
             return {"message": "Utilisateur déconnecté"}
 
@@ -56,14 +85,13 @@ class UserService:
 
     def create_user(self, full_name: str, email: str, password: str,
                     role_id: int):
-        """
-        Vérifie les permissions du user
-        Vérifie le format de l'adresse email
-        Vérifie qu'elle 'n'existe pas déjà
-        Hash le mdp
-        Crée un nouvel utilisateur
-        """
+        """ Créer un utilisateur """
         try:
+            email = email.strip().lower()
+            if not is_email_valid(email):
+                logging.debug(f"Adresse email invalide : {email}")
+                return {"error": "Adresse email invalide"}
+
             existing_user = self.user_repo.get_user_by_email(email)
             if existing_user:
                 logging.debug(f"Adresse email déjà existante : {email}")

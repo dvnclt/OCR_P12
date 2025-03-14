@@ -3,7 +3,7 @@ import click
 from config.config import SessionLocal
 from services.user_service import UserService
 from repositories.user_repository import UserRepository
-from utils.utils import ROLE_MAPPING, is_email_valid, is_password_valid
+from utils.utils import is_email_valid, is_password_valid, is_role_valid
 
 
 db_session = SessionLocal()
@@ -41,15 +41,13 @@ def create():
         if not is_password_valid(password):
             click.echo("❌ Erreur : Le mot de passe doit comporter au moins 8 "
                        "caractères et un chiffre")
-            password = click.prompt("Veuillez entrer un mot de passe valide",
-                                    hide_input=True)
         else:
             break
 
     # Demande et vérifie le rôle
     while True:
         role_name = click.prompt('Rôle de l\'utilisateur')
-        role_id = ROLE_MAPPING.get(role_name.lower())
+        role_id = is_role_valid(role_name.lower())
         if not role_id:
             click.echo(f"❌ Erreur : Le rôle '{role_name}' est invalide. "
                        "Choisissez parmi : Gestion, Commercial, Support.")
@@ -83,10 +81,12 @@ def create():
 
 # Commande pour récupérer un utilisateur par ID, email ou nom complet
 @user_group.command()
-@click.argument('identifier', required=False)
+@click.argument('identifier', nargs=-1, required=False)
 def get(identifier):
     """Récupère un utilisateur par ID, email ou nom complet."""
 
+    if identifier:
+        identifier = " ".join(identifier)
     # Si aucun argument n'est passé, demande à l'utilisateur
     if not identifier:
         identifier = click.prompt(
@@ -94,37 +94,41 @@ def get(identifier):
             type=str
         )
 
-    # Vérifie si l'input est un ID (entier)
+    # Récupération de l'utilisateur en fonction de l'identifiant
     if identifier.isdigit():
-        user = user_service.get_user_by_id(int(identifier))
-    # Vérifie si l'input est un email (présence du "@")
+        found_user = user_service.get_user_by_id(int(identifier))
     elif "@" in identifier:
-        user = user_service.get_user_by_email(identifier)
-    # Sinon, considère que c'est un nom complet
+        found_user = user_service.get_user_by_email(identifier)
     else:
-        users = user_service.get_user_by_name(identifier)
+        found_user = user_service.get_user_by_name(identifier)
 
-    # Gestion des erreurs et affichage du résultat
-    if isinstance(users, dict) and "error" in users:
-        click.echo(f"❌ Erreur : {users['error']}")
-    else:
-        if len(users) == 1:
-            user = users[0]
+    # Gestion des erreurs
+    if isinstance(found_user, dict) and "error" in found_user:
+        click.echo(f"❌ Erreur : {found_user['error']}")
+        return
+
+    if not found_user:
+        click.echo("❌ Aucun utilisateur trouvé.")
+    # Si plusieurs utilisateurs (avec le meme nom), les affichent
+    elif isinstance(found_user, list) and len(found_user) > 1:
+        click.echo("✅ Plusieurs utilisateurs ont été trouvés :")
+        for u in found_user:
             click.echo(
-                f"👤 {user.full_name}\n"
-                f"ID : {user.id}\n"
-                f"Email : {user.email}\n"
-                f"Rôle : {user.role.name}\n"
+                f"\n👤 {u.full_name}\n"
+                f"ID : {u.id}\n"
+                f"Email : {u.email}\n"
+                f"Rôle : {u.role.name}\n"
             )
-        elif len(users) > 1:
-            click.echo("Plusieurs utilisateurs ont été trouvés :")
-            for user in users:
-                click.echo(
-                    f"👤 {user.full_name}\n"
-                    f"ID : {user.id}\n"
-                    f"Email : {user.email}\n"
-                    f"Rôle : {user.role.name}\n"
-                )
+    # Si utilisateur trouvé, l'affiche
+    else:
+        u = found_user[0] if isinstance(found_user, list) else found_user
+        click.echo(
+            "\n✅ Utilisateur trouvé :\n"
+            f"\n👤 {u.full_name}\n"
+            f"ID : {u.id}\n"
+            f"Email : {u.email}\n"
+            f"Rôle : {u.role.name}\n"
+        )
 
 
 # Commande pour mettre à jour un utilisateur via son email
@@ -143,27 +147,42 @@ def update(email):
 
     user_id = user.id
 
-    click.echo(f"👤 Utilisateur trouvé : {user.full_name} - {user.email} - "
-               f"{user.role.name}")
+    click.echo("\n👤 Utilisateur trouvé :\n"
+               f"Nom : {user.full_name}\n"
+               f"Email : {user.email}\n"
+               f"Role : {user.role.name}\n"
+               )
 
     # Demande les nouvelles valeurs avec les anciennes comme valeurs par défaut
     full_name = click.prompt("Nouveau nom complet (laisser vide pour ne pas "
                              "changer)",
                              default=user.full_name, show_default=True)
-    email = click.prompt("Nouvelle adresse email (laisser vide pour ne "
-                         "pas changer)", default=user.email,
-                         show_default=True)
-    password = click.prompt("Nouveau mot de passe (laisser vide pour ne pas "
-                            "changer)", default="", hide_input=True)
-    role_name = click.prompt("Nouveau rôle (laisser vide pour ne pas changer)",
-                             default=user.role.name, show_default=True)
-
-    role_id = ROLE_MAPPING.get(role_name.lower())
-
-    if not role_id:
-        click.echo(f"❌ Erreur : Le rôle '{role_name}' est invalide. "
-                   "Choisissez parmi : gestion, commercial, support.")
-        raise click.Abort()
+    while True:
+        email = click.prompt("Nouvelle adresse email (laisser vide pour ne "
+                             "pas changer)", default=user.email,
+                             show_default=True)
+        if not is_email_valid(email):
+            click.echo(f"❌ Erreur : L'email '{email}' est invalide.")
+        else:
+            break
+    while True:
+        password = click.prompt("Nouveau mot de passe (laisser vide pour ne "
+                                "pas changer)", default="", hide_input=True)
+        if not is_password_valid(password):
+            click.echo("❌ Erreur : Le mot de passe doit comporter au moins 8 "
+                       "caractères et un chiffre")
+        else:
+            break
+    while True:
+        role_name = click.prompt("Nouveau rôle (laisser vide pour ne pas "
+                                 "changer)", default=user.role.name,
+                                 show_default=True)
+        role_id = is_role_valid(role_name.lower())
+        if not role_id:
+            click.echo(f"❌ Erreur : Le rôle '{role_name}' est invalide. "
+                       "Choisissez parmi : Gestion, Commercial, Support.")
+        else:
+            break
 
     # Si aucun changement, annule l'opération
     if (
@@ -200,7 +219,12 @@ def update(email):
         click.echo(f"❌ Erreur : {updated_user['error']}")
         raise click.Abort()
 
-    click.echo(f"✅ Mise à jour réussie pour {updated_user.full_name}.")
+    click.echo(f"✅ Mise à jour réussie pour {updated_user.full_name}.\n"
+               "\n👤 Utilisateur mis à jour :\n"
+               f"Nom : {updated_user.full_name}\n"
+               f"Email : {updated_user.email}\n"
+               f"Role : {updated_user.role.name}\n"
+               )
 
 
 # Commande pour supprimer un utilisateur via son email
@@ -216,6 +240,12 @@ def delete(email):
     if isinstance(user_to_delete, dict) and "error" in user_to_delete:
         click.echo(f"❌ Erreur : {user_to_delete['error']}")
         raise click.Abort()
+
+    click.echo("\n👤 Utilisateur trouvé :\n"
+               f"Nom : {user_to_delete.full_name}\n"
+               f"Email : {user_to_delete.email}\n"
+               f"Role : {user_to_delete.role.name}\n"
+               )
 
     # Demande confirmation pour la suppression
     confirm = click.confirm(

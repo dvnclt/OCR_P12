@@ -4,6 +4,8 @@ from config.config import SessionLocal
 from services.client_service import ClientService
 from repositories.client_repository import ClientRepository
 from commands.user_command import user_service
+from utils.utils import is_email_valid, is_phone_valid
+
 
 db_session = SessionLocal()
 
@@ -21,23 +23,42 @@ def client_group():
 # Commande pour créer un client
 @client_group.command()
 @click.pass_context
-@click.option('--full_name', prompt="Nom complet du client",
-              help="Nom complet du client.")
-@click.option('--email', prompt="Email du client",
-              help="Adresse email du client.")
-@click.option('--phone', prompt="Numéro de téléphone du client",
-              help="Numéro de téléphone du client.")
-@click.option('--company_name', prompt="Nom de l'entreprise",
-              help="Nom de l'entreprise du client.")
-def create(ctx, full_name, email, phone, company_name):
-    """Crée un nouveau client."""
+def create(ctx):
+    """Crée un nouveau client dans le CRM."""
 
+    # Demande le nom complet
+    full_name = click.prompt("Nom complet du client")
+
+    # Demande et vérifie l'email
+    while True:
+        email = click.prompt("Email du client").strip().lower()
+        if not is_email_valid(email):
+            click.echo(f"❌ Erreur : L'email '{email}' est invalide.")
+        else:
+            break
+
+    # Demande et vérifie le numéro de téléphone
+    while True:
+        phone = click.prompt("Numéro de téléphone du client")
+        if not is_phone_valid(phone):
+            click.echo(f"❌ Erreur : Le numéro '{phone}' est invalide.")
+        else:
+            break
+
+    # Demande le nom de l'entreprise
+    company_name = click.prompt("Nom de l'entreprise")
+
+    # Associe l'user qui créé le client comme étant don contact
     user = ctx.obj
     contact = user.full_name
+    if not contact:
+        click.echo("❌ Erreur : Contact introuvable")
+        return
 
+    # Confirmation avant création
     confirm = click.confirm(
-        f"❗ Confirmez-vous la création du client ?\n"
-        f"Nom complet : {full_name}\n"
+        f"\n❗ Confirmer la création du client ? :\n"
+        f"Nom : {full_name}\n"
         f"Email : {email}\n"
         f"Téléphone : {phone}\n"
         f"Entreprise : {company_name}\n"
@@ -48,41 +69,80 @@ def create(ctx, full_name, email, phone, company_name):
         click.echo("ℹ️ Opération annulée.")
         return
 
+    # Création du client
     client = client_service.create_client(
         full_name=full_name,
         email=email,
         phone=phone,
         company_name=company_name,
-        contact=contact
+        contact=contact if contact else None
     )
 
     if isinstance(client, dict) and "error" in client:
         click.echo(f"❌ Erreur : {client['error']}")
-        raise click.Abort()
+        return
 
-    click.echo(f"✅ Client {full_name} créé avec succès.")
+    click.echo(f"✅ Création du client {full_name} réussie.\n"
+               f"Email : {email}\n"
+               f"Téléphone : {phone}\n"
+               f"Entreprise : {company_name}\n"
+               f"Contact : {contact}\n"
+               )
 
 
-# Commande pour récupérer un client par email
+# Commande pour récupérer un client
 @client_group.command()
-@click.option('--email', prompt="Email du client",
-              help="Email du client à récupérer.")
-def get(email):
-    """Récupère un client par son email."""
+@click.argument('identifier', nargs=-1, required=False)
+def get(identifier):
+    """Récupère un client par ID, email ou nom complet."""
 
-    client = client_service.get_client_by_email(email)
+    if identifier:
+        identifier = " ".join(identifier)
+    # Si aucun argument n'est passé, demande à l'utilisateur
+    if not identifier:
+        identifier = click.prompt(
+            'Veuillez entrer un ID, un email ou un nom complet',
+            type=str
+        ).strip()
 
-    if isinstance(client, dict) and "error" in client:
-        click.echo(f"❌ Erreur : {client['error']}")
+    # Récupération du client en fonction de l'identifiant
+    if identifier.isdigit():
+        found_client = client_service.get_client_by_id(int(identifier))
+    elif "@" in identifier:
+        identifier = identifier.strip().lower()
+        found_client = client_service.get_client_by_email(identifier)
     else:
-        click.echo(
-            f"👤 Client trouvé :\n"
-            f"Nom :{client.full_name}\n"
-            f"Email {client.email}\n"
-            f"Téléphone : {client.phone}\n"
-            f"Entreprise : {client.company_name}\n"
-            f"Contact : {client.contact}"
-        )
+        found_client = client_service.get_client_by_name(identifier)
+
+    # Gestion des erreurs
+    if isinstance(found_client, dict) and "error" in found_client:
+        click.echo(f"❌ Erreur : {found_client['error']}")
+        return
+
+    # Si le client n'est pas trouvé
+    if not found_client:
+        click.echo("❌ Aucun client trouvé.")
+    elif isinstance(found_client, list) and len(found_client) > 1:
+        click.echo("✅ Plusieurs clients ont été trouvés :")
+        for c in found_client:
+            click.echo(
+                f"\n👤 {c.full_name}\n"
+                f"ID : {c.id}\n"
+                f"Email : {c.email}\n"
+                f"Téléphone : {c.phone}\n"
+                f"Entreprise : {c.company_name}\n"
+                f"Contact : {c.contact or 'Aucun'}\n"
+            )
+    else:
+        c = found_client[0] if isinstance(found_client, list) else found_client
+        click.echo("\n✅ Client trouvé :\n"
+                   f"\n👤 {c.full_name}\n"
+                   f"ID : {c.id}\n"
+                   f"Email : {c.email}\n"
+                   f"Téléphone : {c.phone}\n"
+                   f"Entreprise : {c.company_name}\n"
+                   f"Contact : {c.contact or 'Aucun'}\n"
+                   )
 
 
 # Commande pour mettre à jour un client via son email
@@ -91,6 +151,8 @@ def get(email):
               help="Email du client.")
 def update(email):
     """Met à jour les informations d'un client via son email."""
+
+    email = email.strip().lower()
 
     # Récupère le client existant
     client = client_service.get_client_by_email(email)
@@ -107,7 +169,9 @@ def update(email):
                              default=client.full_name, show_default=True)
     email = click.prompt("Nouvelle adresse email (laisser vide pour ne "
                          "pas changer)",
-                         default=client.email, show_default=True)
+                         default=client.email,
+                         show_default=True
+                         ).strip().lower()
     phone = click.prompt("Nouveau téléphone (laisser vide pour ne pas "
                          "changer)",
                          default=client.phone, show_default=True)

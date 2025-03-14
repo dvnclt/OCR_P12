@@ -57,6 +57,20 @@ class ClientService:
                           f"{email}: {str(e)}")
             return {"error": "Erreur interne du serveur"}
 
+    def get_client_by_name(self, full_name: str):
+        """Récupère un client par ,om, renvoie une erreur si non trouvé."""
+        try:
+            client = self.client_repo.get_client_by_name(full_name)
+            if not client:
+                logging.debug(f"Client : {full_name} introuvable")
+                return {"error": "Client introuvable"}
+            return client
+
+        except SQLAlchemyError as e:
+            logging.error("Erreur SQL lors de la récupération du client "
+                          f"{full_name}: {str(e)}")
+            return {"error": "Erreur interne du serveur"}
+
     def update_client(self, client_id: int, full_name: str = None,
                       email: str = None, phone: str = None,
                       company_name: str = None, contact: str = None):

@@ -38,6 +38,7 @@ def main(ctx):
 @click.option('--email', prompt='Email de l\'utilisateur',
               help='L\'email de l\'utilisateur.')
 @click.option('--password', prompt='Mot de passe de l\'utilisateur',
+              hide_input=True,
               help='Le mot de passe de l\'utilisateur.')
 def login(email, password):
     """Authentifie l'utilisateur et génère un token JWT."""

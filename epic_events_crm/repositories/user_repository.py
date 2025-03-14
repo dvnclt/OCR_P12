@@ -24,13 +24,13 @@ class UserRepository:
         """ Récupère un utilisateur par son ID. """
         return self.db.query(User).filter(User.id == user_id).first()
 
-    def get_user_by_name(self, full_name: int) -> User:
-        """ Récupère un utilisateur par son nom complet. """
-        return self.db.query(User).filter(User.full_name == full_name).all()
-
     def get_user_by_email(self, email: str) -> User:
         """ Récupère un utilisateur par son adresse email. """
         return self.db.query(User).filter(User.email == email).first()
+
+    def get_user_by_name(self, full_name: str) -> User:
+        """ Récupère un utilisateur par son nom complet. """
+        return self.db.query(User).filter(User.full_name == full_name).all()
 
     def update_user(self, user_id: int, full_name: str = None,
                     email: str = None, password: str = None,
