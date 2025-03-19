@@ -31,7 +31,7 @@ def create(ctx):
 
     # Demande et vérifie l'email
     while True:
-        email = click.prompt("Email du client").strip().lower()
+        email = click.prompt("Email du client").lower()
         if not is_email_valid(email):
             click.echo(f"❌ Erreur : L'email '{email}' est invalide.")
         else:
@@ -57,7 +57,7 @@ def create(ctx):
 
     # Confirmation avant création
     confirm = click.confirm(
-        f"\n❗ Confirmer la création du client ? :\n"
+        "\n❗ Confirmer la création du client ? :\n"
         f"Nom : {full_name}\n"
         f"Email : {email}\n"
         f"Téléphone : {phone}\n"
@@ -103,14 +103,13 @@ def get(identifier):
         identifier = click.prompt(
             'Veuillez entrer un ID, un email ou un nom complet',
             type=str
-        ).strip()
+        )
 
     # Récupération du client en fonction de l'identifiant
     if identifier.isdigit():
         found_client = client_service.get_client_by_id(int(identifier))
     elif "@" in identifier:
-        identifier = identifier.strip().lower()
-        found_client = client_service.get_client_by_email(identifier)
+        found_client = client_service.get_client_by_email(identifier.lower())
     else:
         found_client = client_service.get_client_by_name(identifier)
 
@@ -131,7 +130,7 @@ def get(identifier):
                 f"Email : {c.email}\n"
                 f"Téléphone : {c.phone}\n"
                 f"Entreprise : {c.company_name}\n"
-                f"Contact : {c.contact or 'Aucun'}\n"
+                f"Contact : {c.contact}\n"
             )
     else:
         c = found_client[0] if isinstance(found_client, list) else found_client
@@ -141,7 +140,7 @@ def get(identifier):
                    f"Email : {c.email}\n"
                    f"Téléphone : {c.phone}\n"
                    f"Entreprise : {c.company_name}\n"
-                   f"Contact : {c.contact or 'Aucun'}\n"
+                   f"Contact : {c.contact}\n"
                    )
 
 
@@ -152,10 +151,8 @@ def get(identifier):
 def update(email):
     """Met à jour les informations d'un client via son email."""
 
-    email = email.strip().lower()
-
     # Récupère le client existant
-    client = client_service.get_client_by_email(email)
+    client = client_service.get_client_by_email(email.lower())
 
     if client is None or (isinstance(client, dict) and "error" in client):
         click.echo("❌ Erreur : Client introuvable.")
@@ -163,33 +160,55 @@ def update(email):
 
     client_id = client.id
 
+    click.echo("\n👤 Client trouvé :\n"
+               f"Nom : {client.full_name}\n"
+               f"Email : {client.email}\n"
+               f"Téléphone : {client.phone}\n"
+               f"Entreprise : {client.company_name}\n"
+               f"Contact : {client.contact}\n"
+               )
+
     # Demande les nouvelles valeurs avec les anciennes comme valeurs par défaut
     full_name = click.prompt("Nouveau nom complet (laisser vide pour ne "
                              "pas changer)",
                              default=client.full_name, show_default=True)
-    email = click.prompt("Nouvelle adresse email (laisser vide pour ne "
-                         "pas changer)",
-                         default=client.email,
-                         show_default=True
-                         ).strip().lower()
-    phone = click.prompt("Nouveau téléphone (laisser vide pour ne pas "
-                         "changer)",
-                         default=client.phone, show_default=True)
+
+    while True:
+        email = click.prompt("Nouvelle adresse email (laisser vide pour ne "
+                             "pas changer)", default=client.email,
+                             show_default=True).lower()
+        if not is_email_valid(email):
+            click.echo(f"❌ Erreur : L'email '{email}' est invalide.")
+        else:
+            break
+
+    while True:
+        phone = click.prompt("Nouveau téléphone (laisser vide pour ne pas "
+                             "changer)", default=client.phone,
+                             show_default=True)
+        if not is_phone_valid(phone):
+            click.echo(f"❌ Erreur : Le numéro '{phone}' est invalide.")
+        else:
+            break
     company_name = click.prompt("Nouvelle entreprise (laisser vide pour ne "
                                 "pas changer)",
                                 default=client.company_name, show_default=True)
-    contact = click.prompt("Nouveau contact (laisser vide pour ne "
-                           "pas changer)",
-                           default=client.contact, show_default=True)
 
-    if contact != client.contact:
-        user_contact = user_service.get_user_by_name(contact)
+    while True:
+        contact = click.prompt("Nom du nouveau contact (laisser vide pour ne "
+                               "pas changer)",
+                               default=client.contact, show_default=True)
+        if contact != client.contact:
+            user_contact = user_service.get_user_by_name(contact)
 
-        if user_contact is None or (isinstance(user_contact, dict) and "error"
-                                    in user_contact):
-            click.echo("❌ Erreur : Aucun utilisateur trouvé avec le nom "
-                       f"'{contact}'.")
-            raise click.Abort()
+            if user_contact is None or (isinstance(user_contact, dict) and
+                                        "error" in user_contact):
+                click.echo("❌ Erreur : Aucun utilisateur trouvé avec le nom "
+                           f"'{contact}'.")
+            else:
+                break
+        else:
+            break
 
     # Si aucun changement, annule l'opération
     if (
@@ -241,7 +260,7 @@ def delete(email):
     """Supprime un client par son email."""
 
     # Recherche du client par email
-    client_to_delete = client_service.get_client_by_email(email)
+    client_to_delete = client_service.get_client_by_email(email.lower())
 
     if isinstance(client_to_delete, dict) and "error" in client_to_delete:
         click.echo(f"❌ Erreur : {client_to_delete['error']}")

@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 
 def is_role_valid(role_name):
@@ -36,3 +37,12 @@ def is_password_valid(password):
     if not any(char.isdigit() for char in password):
         return False
     return True
+
+
+def is_date_valid(date: str) -> bool:
+    """Vérifie si la chaîne de caractères date est au format YYYY-MM-DD"""
+    try:
+        datetime.strptime(date, '%Y-%m-%d').date()
+        return True
+    except ValueError:
+        return False

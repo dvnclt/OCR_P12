@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from config.config import Base
@@ -9,7 +10,7 @@ class Event(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
-    contract_id = Column(Integer, ForeignKey('contracts.id'))
+    contract_id = Column(UUID, ForeignKey('contracts.id'))
     client_id = Column(Integer, ForeignKey('clients.id'))
     start_date = Column(Date)
     end_date = Column(Date)

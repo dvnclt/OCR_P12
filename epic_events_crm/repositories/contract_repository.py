@@ -1,25 +1,26 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import Numeric
-
 from models.contract import Contract
 from models.user import User
+from sqlalchemy import func
+from decimal import Decimal
 
 
 class ContractRepository:
     def __init__(self, db_session: Session):
         self.db = db_session
 
-    def create_contract(self, client_id: int, contract_amount: float,
-                        contract_status: str, contact: str) -> Contract:
+    def create_contract(self, client_id: int, total_amount: float,
+                        status: str, contact: str) -> Contract:
         """Ajoute un nouveau contrat dans la base de données."""
 
         user = self.db.query(User).filter(User.full_name == contact).first()
 
         new_contract = Contract(
             client_id=client_id,
-            contract_amount=Numeric(contract_amount),
-            remaining_amount=Numeric(contract_amount),
-            contract_status=contract_status,
+            total_amount=(total_amount),
+            paid_amount=0.0,
+            remaining_amount=(total_amount),
+            status=status,
             contact=contact,
             user_id=user.id if user else None
         )
@@ -29,52 +30,62 @@ class ContractRepository:
         self.db.refresh(new_contract)
         return new_contract
 
-    def get_contract_by_id(self, contract_id: int) -> Contract:
-        """Récupère un contrat par son ID."""
-        return self.db.query(Contract).filter(
-            Contract.id == contract_id
-            ).first()
+    def get_contracts(self, contract_id: str = None,
+                      user_id: int = None,
+                      client_id: int = None,
+                      status: str = None,
+                      remaining_amount: bool = False
+                      ) -> list[Contract]:
+        """Récupère les contrats en fonction des filtres fournis"""
 
-    def get_contracts_by_client_id(self, client_id: int) -> list[Contract]:
-        """Récupère tous les contrats d'un client donné."""
-        return self.db.query(Contract).filter(
-            Contract.client_id == client_id
-            ).all()
+        query = self.db.query(Contract)
 
-    def get_contracts_by_user_id(self, user_id: int) -> list[Contract]:
-        """Récupère tous les contrats assignés à un utilisateur donné."""
-        return self.db.query(Contract).filter(
-            Contract.user_id == user_id
-            ).all()
+        if contract_id:
+            query = query.filter(Contract.id == contract_id)
+        if user_id:
+            query = query.filter(Contract.user_id == user_id)
+        if client_id:
+            query = query.filter(Contract.client_id == client_id)
+        if status:
+            query = query.filter(func.lower(Contract.status) == status.lower())
+        if remaining_amount:
+            query = query.filter(Contract.remaining_amount != 0)
 
-    def update_contract(self, contract_id: int, contract_amount: float = None,
-                        remaining_amount: float = None,
-                        contract_status: str = None,
+        return query.all()
+
+    def update_contract(self, contract: Contract,
+                        total_amount: float = None,
+                        paid_amount: float = None,
+                        status: str = None,
                         contact: str = None) -> Contract:
         """Met à jour les informations d'un contrat."""
 
-        contract = self.get_contract_by_id(contract_id)
-        if contract:
-            if contract_amount is not None:
-                contract.contract_amount = Numeric(contract_amount)
-            if remaining_amount is not None:
-                contract.remaining_amount = Numeric(remaining_amount)
-            if contract_status is not None:
-                contract.contract_status = contract_status
-            if contact is not None:
-                user = self.db.query(User).filter(
-                    User.full_name == contact
-                    ).first()
-                contract.contact = contact
-                contract.user_id = user.id if user else None
+        if total_amount is not None:
+            contract.total_amount = Decimal(str(total_amount))
+            contract.remaining_amount = (
+                contract.total_amount - contract.paid_amount
+                )
+        if paid_amount is not None:
+            contract.paid_amount += Decimal(str(paid_amount))
+            contract.remaining_amount = (
+                contract.total_amount - contract.paid_amount
+                )
+        if status is not None:
+            contract.status = status
+        if contact is not None:
+            user = self.db.query(User).filter(
+                User.email == contact
+                ).first()
+            contract.contact = contact
+            contract.user_id = user.id if user else None
 
-            self.db.commit()
-            self.db.refresh(contract)
+        self.db.commit()
+        self.db.refresh(contract)
         return contract
 
-    def delete_contract(self, contract_id: int) -> bool:
+    def delete_contract(self, contract_id: str) -> bool:
         """Supprime un contrat par son ID."""
-        contract = self.get_contract_by_id(contract_id)
+        contract = self.get_contracts(contract_id)[0]
         if contract:
             self.db.delete(contract)
             self.db.commit()

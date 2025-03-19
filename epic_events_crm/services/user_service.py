@@ -3,7 +3,6 @@ import logging
 from sqlalchemy.exc import SQLAlchemyError
 
 from utils.jwt_utils import create_access_token
-from utils.utils import is_email_valid
 from repositories.user_repository import UserRepository
 from services.auth_service import clear_token, verify_password, set_password  # noqa: E501
 
@@ -33,9 +32,6 @@ class UserService:
             SQLAlchemyError: En cas d'erreur avec la base de données.
         """
         try:
-            # Formate l'adresse email
-            email = email.strip().lower()
-
             # Recherche l'user
             user = self.user_repo.get_user_by_email(email)
 
@@ -69,7 +65,7 @@ class UserService:
             dict: Message de confirmation
 
         Raises:
-            SQLAlchemyError: En cas d'erreur avec la base de données.
+            SQLAlchemyError: En cas d'erreur avec la base de données
         """
         try:
             # Supprime le token
@@ -85,20 +81,33 @@ class UserService:
 
     def create_user(self, full_name: str, email: str, password: str,
                     role_id: int):
-        """ Créer un utilisateur """
-        try:
-            email = email.strip().lower()
-            if not is_email_valid(email):
-                logging.debug(f"Adresse email invalide : {email}")
-                return {"error": "Adresse email invalide"}
+        """
+        Créer un utilisateur
 
+        Args:
+            full_name (str): Nom complet de l'utilisateur
+            email (str): Adresse email de l'utilisateur
+            password (str): Mot de passe non chiffré de l'utilisateur
+            role_id (int): Identifiant du rôle associé à l'utilisateur
+
+        Returns:
+            User: Objet utilisateur créé si opération réussie
+            dict: Message d'erreur en cas d'échec
+
+        Raises:
+            SQLAlchemyError: En cas d'erreur avec la base de données
+        """
+        try:
+            # Vérifie que l'user n'existe pas déjà
             existing_user = self.user_repo.get_user_by_email(email)
             if existing_user:
                 logging.debug(f"Adresse email déjà existante : {email}")
                 return {"error": "Cet adresse email est déjà utilisée"}
 
+            # Hash le password
             hashed_password = set_password(password)
 
+            # Créé le user
             new_user = self.user_repo.create_user(
                 full_name,
                 email,

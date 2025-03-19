@@ -28,7 +28,7 @@ def create():
 
     # Demande et vérifie l'adresse email
     while True:
-        email = click.prompt('Email de l\'utilisateur')
+        email = click.prompt('Email de l\'utilisateur').lower()
         if not is_email_valid(email):
             click.echo(f"❌ Erreur : L'email '{email}' est invalide.")
         else:
@@ -46,8 +46,8 @@ def create():
 
     # Demande et vérifie le rôle
     while True:
-        role_name = click.prompt('Rôle de l\'utilisateur')
-        role_id = is_role_valid(role_name.lower())
+        role_name = click.prompt('Rôle de l\'utilisateur').lower()
+        role_id = is_role_valid(role_name)
         if not role_id:
             click.echo(f"❌ Erreur : Le rôle '{role_name}' est invalide. "
                        "Choisissez parmi : Gestion, Commercial, Support.")
@@ -98,7 +98,7 @@ def get(identifier):
     if identifier.isdigit():
         found_user = user_service.get_user_by_id(int(identifier))
     elif "@" in identifier:
-        found_user = user_service.get_user_by_email(identifier)
+        found_user = user_service.get_user_by_email(identifier.lower())
     else:
         found_user = user_service.get_user_by_name(identifier)
 
@@ -139,7 +139,7 @@ def update(email):
     """Met à jour les informations d'un utilisateur via son email"""
 
     # Récupère l'utilisateur si existant
-    user = user_service.get_user_by_email(email)
+    user = user_service.get_user_by_email(email.lower())
 
     if user is None or (isinstance(user, dict) and "error" in user):
         click.echo("❌ Erreur : Utilisateur introuvable.")
@@ -160,7 +160,7 @@ def update(email):
     while True:
         email = click.prompt("Nouvelle adresse email (laisser vide pour ne "
                              "pas changer)", default=user.email,
-                             show_default=True)
+                             show_default=True).lower()
         if not is_email_valid(email):
             click.echo(f"❌ Erreur : L'email '{email}' est invalide.")
         else:
@@ -168,6 +168,9 @@ def update(email):
     while True:
         password = click.prompt("Nouveau mot de passe (laisser vide pour ne "
                                 "pas changer)", default="", hide_input=True)
+        if password == "":
+            break
+
         if not is_password_valid(password):
             click.echo("❌ Erreur : Le mot de passe doit comporter au moins 8 "
                        "caractères et un chiffre")
@@ -176,8 +179,8 @@ def update(email):
     while True:
         role_name = click.prompt("Nouveau rôle (laisser vide pour ne pas "
                                  "changer)", default=user.role.name,
-                                 show_default=True)
-        role_id = is_role_valid(role_name.lower())
+                                 show_default=True).lower()
+        role_id = is_role_valid(role_name)
         if not role_id:
             click.echo(f"❌ Erreur : Le rôle '{role_name}' est invalide. "
                        "Choisissez parmi : Gestion, Commercial, Support.")
@@ -198,7 +201,6 @@ def update(email):
         f"❗ Valider les modifications suivantes ?\n"
         f"{user.full_name} => {full_name}\n"
         f"{user.email} => {email}\n"
-        f"Mot de passe\n"
         f"{user.role.name} => {role_name}\n"
     )
 
@@ -235,7 +237,7 @@ def delete(email):
     """Supprime un utilisateur par son email."""
 
     # Recherche de l'utilisateur par email
-    user_to_delete = user_service.get_user_by_email(email)
+    user_to_delete = user_service.get_user_by_email(email.lower)
 
     if isinstance(user_to_delete, dict) and "error" in user_to_delete:
         click.echo(f"❌ Erreur : {user_to_delete['error']}")

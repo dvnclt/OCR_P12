@@ -9,6 +9,8 @@ from utils.jwt_utils import get_current_user
 
 from commands.user_command import user_group
 from commands.client_command import client_group
+from commands.contract_command import contract_group
+from commands.event_command import event_group
 
 
 db_session = SessionLocal()
@@ -43,6 +45,7 @@ def main(ctx):
 def login(email, password):
     """Authentifie l'utilisateur et génère un token JWT."""
 
+    email = email.strip().lower()
     token = user_service.authenticate(email=email, password=password)
 
     if isinstance(token, dict) and "error" in token:
@@ -65,8 +68,8 @@ def logout():
 # Ajout de sous-commandes sous chaque groupe
 main.add_command(user_group)
 main.add_command(client_group)
-# main.add_command(contract_group)
-# main.add_command(event_group)
+main.add_command(contract_group)
+main.add_command(event_group)
 
 if __name__ == '__main__':
     main()
