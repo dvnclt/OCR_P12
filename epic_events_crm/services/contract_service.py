@@ -40,13 +40,13 @@ class ContractService:
                       remaining_amount: bool = False,
                       ):
         """
-        Récupère les contrats selon les critères fournis.
-        Retourne une erreur si aucun contrat n'est trouvé.
+        Récupère les contrats selon les critères fournis
+        Retourne une erreur si aucun contrat n'est trouvé
         """
         try:
             if contract_id is not None:
                 try:
-                    uuid_obj = uuid.UUID(contract_id)
+                    uuid_obj = uuid.UUID(contract_id)  # noqa: F841
                 except ValueError:
                     return {"error": "ID du contrat invalide"}
             contracts = self.contract_repo.get_contracts(contract_id=contract_id,  # noqa: E501

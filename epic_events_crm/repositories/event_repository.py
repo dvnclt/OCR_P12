@@ -1,8 +1,7 @@
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 from models.event import Event
-from models.client import Client
-from models.contract import Contract
 from models.user import User
 
 
@@ -34,48 +33,46 @@ class EventRepository:
         self.db.refresh(new_event)
         return new_event
 
-    def get_event_by_id(self, event_id: int) -> Event:
-        """Récupère un événement par son ID."""
-        return self.db.query(Event).filter(Event.id == event_id).first()
+    def get_events(self, event_id: int = None,
+                   contract_id: str = None,
+                   client_id: int = None,
+                   user_id: int = None,
+                   start_date: datetime = None,
+                   end_date: datetime = None,
+                   no_user: bool = False,
+                   ) -> list[Event]:
+        """Récupère les évènements en fonction des filtres fournis"""
 
-    def get_events_by_contract_id(self, contract_id: int) -> list[Event]:
-        """Récupère tous les événements associés à un contrat donné."""
-        return self.db.query(Event).filter(
-            Event.contract_id == contract_id
-            ).all()
+        query = self.db.query(Event)
 
-    def get_events_by_client_id(self, client_id: int) -> list[Event]:
-        """Récupère tous les événements associés à un client donné."""
-        return self.db.query(Event).filter(
-            Event.client_id == client_id
-            ).all()
+        if event_id:
+            query = query.filter(Event.id == event_id)
+        if contract_id:
+            query = query.filter(Event.contract_id == contract_id)
+        if client_id:
+            query = query.filter(Event.client_id == client_id)
+        if user_id:
+            query = query.filter(Event.user_id == user_id)
+        if start_date:
+            query = query.filter(Event.start_date == start_date)
+        if end_date:
+            query = query.filter(Event.end_date == end_date)
+        if no_user:
+            query = query.filter(Event.user_id.is_(None))
 
-    def get_events_by_user_id(self, user_id: int) -> list[Event]:
-        """Récupère tous les événements associés à un utilisateur donné."""
-        return self.db.query(Event).filter(Event.user_id == user_id).all()
+        return query.all()
 
     def update_event(self, event_id: int, name: str = None,
-                     contract_id: int = None, client_id: int = None,
                      start_date: str = None, end_date: str = None,
                      location: str = None, attendees: int = None,
                      contact: str = None, user_id: int = None,
                      notes: str = None) -> Event:
         """Met à jour un événement existant dans la base de données."""
 
-        event = self.get_event_by_id(event_id)
+        event = self.get_events(event_id)[0]
         if event:
             if name:
                 event.name = name
-            if contract_id:
-                event.contract_id = contract_id
-                event.contract = self.db.query(Contract).filter(
-                    Contract.id == contract_id
-                    ).first()
-            if client_id:
-                event.client_id = client_id
-                event.client = self.db.query(Client).filter(
-                    Client.id == client_id
-                    ).first()
             if start_date:
                 event.start_date = start_date
             if end_date:

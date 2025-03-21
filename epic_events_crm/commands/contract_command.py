@@ -100,7 +100,7 @@ def create():
                                              "status"
                                              ]))
 def get(option):
-    """Récupère les contrats liés à un utilisateur, un client ou un statut."""
+    """Récupère les contrats liés à un utilisateur, un client, un statut..."""
 
     contracts = None
 
@@ -165,7 +165,7 @@ def get(option):
 # Commande pour mettre à jour un contrat
 @contract_group.command()
 @click.option('--contract_id', prompt="ID du contrat",
-              help="ID cu contrat à actualiser")
+              help="ID du contrat à actualiser")
 def update(contract_id):
     """Met à jour les informations d'un contrat."""
 
