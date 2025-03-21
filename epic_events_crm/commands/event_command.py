@@ -350,4 +350,4 @@ def update(event_id):
         click.echo(f"❌ Erreur : {updated_event['error']}")
         raise click.Abort()
 
-    click.echo(f"✅ Mise à jour réussie pour {updated_event.name}.")
+    click.echo(f"✅ Mise à jour réussie pour l'évènement {updated_event.name}.")
