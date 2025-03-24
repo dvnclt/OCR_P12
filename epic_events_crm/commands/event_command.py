@@ -351,3 +351,40 @@ def update(event_id):
         raise click.Abort()
 
     click.echo(f"✅ Mise à jour réussie pour l'évènement {updated_event.name}.")
+
+
+# Commande pour supprimer un event
+@event_group.command()
+@click.option('--event_id', prompt="ID de l'évènement")
+def delete(event_id):
+    """Supprime un évènement par son ID."""
+
+    event_to_delete = event_service.get_events(event_id)[0]
+
+    # Demande confirmation avant suppression
+    confirm = click.confirm("\n❗ Êtes-vous sûr de vouloir supprimer "
+                            "l'évènement suivant ?\n"
+                            f"ID : {event_to_delete.id}\n"
+                            f"Nom de l'évènement : {event_to_delete.name}\n"
+                            f"ID du contrat : {event_to_delete.contract.id}\n"
+                            f"\nInformations client :\n"
+                            f"   Nom : {event_to_delete.contract.client.full_name}\n"  # noqa: E501
+                            f"   Email : {event_to_delete.contract.client.email}\n"  # noqa: E501
+                            f"   Téléphone : {event_to_delete.contract.client.phone}\n"  # noqa: E501
+                            f"\nDate de début : {event_to_delete.start_date}\n"
+                            f"Date de fin : {event_to_delete.end_date}\n"
+                            f"Contact : {event_to_delete.contact if event_to_delete.contact else None}\n"  # noqa: E501
+                            f"Lieu : {event_to_delete.location}\n"
+                            f"Nombre de participants : {event_to_delete.attendees}\n"  # noqa: E501
+                            f"Notes : {event_to_delete.notes}\n"
+                            )
+    if not confirm:
+        click.echo("ℹ️ Suppression annulée.")
+        return
+
+    # Suppression du contrat
+    result = event_service.delete_event(event_to_delete.id)
+    if isinstance(result, dict) and "error" in result:
+        click.echo(f"❌ Erreur : {result['error']}")
+    else:
+        click.echo(f"✅ Le contrat ID {event_to_delete.id} a été supprimé.")
