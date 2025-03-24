@@ -3,7 +3,7 @@ import click
 from config.config import SessionLocal
 from services.user_service import UserService
 from repositories.user_repository import UserRepository
-from utils.utils import is_email_valid, is_password_valid, is_role_valid
+from utils.cli_utils import is_email_valid, is_password_valid, is_role_valid
 
 
 db_session = SessionLocal()
@@ -75,8 +75,8 @@ def create():
 
     if isinstance(user, dict) and "error" in user:
         click.echo(f"❌ Erreur : {user['error']}")
-
-    click.echo(f"✅ Création de l'utilisateur {full_name} réussie.")
+    else:
+        click.echo(f"✅ Création de l'utilisateur {full_name} réussie.")
 
 
 # Commande pour récupérer un utilisateur par ID, email ou nom complet
@@ -237,7 +237,7 @@ def delete(email):
     """Supprime un utilisateur par son email."""
 
     # Recherche de l'utilisateur par email
-    user_to_delete = user_service.get_user_by_email(email.lower)
+    user_to_delete = user_service.get_user_by_email(email.lower())
 
     if isinstance(user_to_delete, dict) and "error" in user_to_delete:
         click.echo(f"❌ Erreur : {user_to_delete['error']}")

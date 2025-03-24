@@ -3,15 +3,15 @@ import click
 from config.config import SessionLocal
 from services.client_service import ClientService
 from repositories.client_repository import ClientRepository
-from commands.user_command import user_service
-from utils.utils import is_email_valid, is_phone_valid
+from commands.user_command import user_service, user_repo
+from utils.cli_utils import is_email_valid, is_phone_valid
 
 
 db_session = SessionLocal()
 
 # Création des objets services
 client_repo = ClientRepository(db_session)
-client_service = ClientService(client_repo)
+client_service = ClientService(client_repo, user_repo)
 
 
 @click.group(name='client')

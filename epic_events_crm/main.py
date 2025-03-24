@@ -2,7 +2,7 @@ from sqlalchemy.orm import sessionmaker
 
 from config.config import Base, engine
 from models import user, client, contract, event  # noqa: F401
-from scripts.init_db import initialize_roles_and_permissions
+from epic_events_crm.config.init_permissions import initialize_roles_and_permissions  # noqa: E501
 
 
 # Crée la session

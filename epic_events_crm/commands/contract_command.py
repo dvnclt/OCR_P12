@@ -3,13 +3,13 @@ from config.config import SessionLocal
 from services.contract_service import ContractService
 from repositories.contract_repository import ContractRepository
 from commands.client_command import client_service
-from commands.user_command import user_service
-from utils.utils import is_email_valid
+from commands.user_command import user_service, user_repo
+from utils.cli_utils import is_email_valid
 
 
 db_session = SessionLocal()
 contract_repo = ContractRepository(db_session)
-contract_service = ContractService(contract_repo)
+contract_service = ContractService(contract_repo, user_repo)
 
 
 @click.group(name='contract')

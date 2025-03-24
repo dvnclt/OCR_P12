@@ -5,14 +5,14 @@ from config.config import SessionLocal
 from services.event_service import EventService
 from repositories.event_repository import EventRepository
 from commands.client_command import client_service
-from commands.user_command import user_service
+from commands.user_command import user_service, user_repo
 from commands.contract_command import contract_service
-from utils.utils import is_date_valid, is_email_valid
+from utils.cli_utils import is_date_valid, is_email_valid
 
 
 db_session = SessionLocal()
 event_repo = EventRepository(db_session)
-event_service = EventService(event_repo)
+event_service = EventService(event_repo, user_repo)
 
 
 @click.group(name='event')

@@ -4,7 +4,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from utils.jwt_utils import create_access_token
 from repositories.user_repository import UserRepository
-from services.auth_service import clear_token, verify_password, set_password  # noqa: E501
+from utils.auth_utils import clear_token, verify_password, set_password  # noqa: E501
+from utils.permission_utils import require_permission
 
 
 class UserService:
@@ -79,6 +80,7 @@ class UserService:
             logging.error(f"Erreur lors de la déconnexion : {str(e)}")
             return {"error": "Erreur interne"}
 
+    @require_permission("create_user", check_ownership=False)
     def create_user(self, full_name: str, email: str, password: str,
                     role_id: int):
         """
@@ -121,6 +123,7 @@ class UserService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}
 
+    @require_permission("read_user", check_ownership=False)
     def get_user_by_id(self, user_id: int):
         """
         Récupère un utilisateur par son ID après vérification des permissions.
@@ -138,6 +141,7 @@ class UserService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}
 
+    @require_permission("read_user", check_ownership=False)
     def get_user_by_email(self, email: str):
         """
         Récupère un utilisateur par son email si permission.
@@ -156,6 +160,7 @@ class UserService:
                           f"{email} : {str(e)}")
             return {"error": "Erreur interne du serveur"}
 
+    @require_permission("read_user", check_ownership=False)
     def get_user_by_name(self, full_name: str):
         """
         Récupère un utilisateur par son nom
@@ -174,6 +179,7 @@ class UserService:
                           f"{full_name} : {str(e)}")
             return {"error": "Erreur interne du serveur"}
 
+    @require_permission("update_user", check_ownership=False)
     def update_user(self, user_id: str, full_name: str = None,
                     email: str = None, password: str = None,
                     role_id: int = None):
@@ -204,6 +210,7 @@ class UserService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}
 
+    @require_permission("delete_user", check_ownership=False)
     def delete_user(self, user_id: int):
         """Supprime un utilisateur par son ID si permission."""
         try:

@@ -3,9 +3,8 @@ import click
 from config.config import SessionLocal
 from repositories.user_repository import UserRepository
 from services.user_service import UserService
-from services.auth_service import set_token, get_token, clear_token
+from utils.auth_utils import set_token, get_token, clear_token, set_password
 from utils.jwt_utils import get_current_user
-
 
 from commands.user_command import user_group
 from commands.client_command import client_group
@@ -25,7 +24,7 @@ user_service = UserService(user_repo)
 @click.pass_context
 def main(ctx):
     """Vérification du token avant chaque commande excepté login/logout"""
-    if ctx.invoked_subcommand not in ["login", "logout"]:
+    if ctx.invoked_subcommand not in ["login", "logout", "admin"]:
         token = get_token()
         user = get_current_user(token, user_repo)
         if isinstance(user, dict) and "error" in user:
@@ -63,6 +62,32 @@ def logout():
     result = user_service.logout()
     click.echo("✅"+result["message"] if "message" in result
                else result["error"])
+
+
+@main.command()
+def admin():
+    from models.user import User
+
+    full_name = "admin"
+    email = "admin"
+    password = "admin"
+    role_id = 1
+
+    # Vérifie si l'admin existe déjà
+    existing_admin = db_session.query(User).filter_by(role_id=role_id).first()
+    if existing_admin:
+        click.echo(f"❌ Erreur : {full_name} déjà existant")
+        return
+
+    # Création de l'admin en base
+    admin_user = user_repo.create_user(
+        full_name=full_name,
+        email=email,
+        hashed_password=set_password(password),
+        role_id=role_id
+    )
+
+    click.echo(f"✅ Création de {admin_user.full_name} réussie.")
 
 
 # Ajout de sous-commandes sous chaque groupe

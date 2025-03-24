@@ -7,12 +7,15 @@ from repositories.event_repository import EventRepository
 from models.client import Client
 from models.contract import Contract
 from models.user import User
+from utils.permission_utils import require_permission
 
 
 class EventService:
-    def __init__(self, event_repo: EventRepository):
+    def __init__(self, event_repo: EventRepository, user_repo=None):
         self.event_repo = event_repo
+        self.user_repo = user_repo
 
+    @require_permission("create_event", check_ownership=True)
     def create_event(self, name: str, contract_id: int, client_id: int,
                      start_date: str, end_date: str, location: str,
                      attendees: int, contact: str, user_id: int, notes: str):
@@ -53,6 +56,7 @@ class EventService:
                           f"{str(e)}")
             return {"error": "Erreur interne"}
 
+    @require_permission("read_event", check_ownership=False)
     def get_events(self, event_id: int = None,
                    contract_id: str = None,
                    client_id: str = None,
@@ -98,6 +102,7 @@ class EventService:
                           f"{str(e)}")
             return {"error": "Erreur interne du serveur"}
 
+    @require_permission("update_event", check_ownership=True)
     def update_event(self, event_id: int, name: str = None,
                      start_date: str = None, end_date: str = None,
                      contact: str = None, location: str = None,
@@ -124,6 +129,7 @@ class EventService:
                           f"{event_id}: {str(e)}")
             return {"error": "Erreur interne"}
 
+    @require_permission("delete_event", check_ownership=False)
     def delete_event(self, event_id: int):
         """
         Supprime un événement par son ID.

@@ -96,16 +96,24 @@ def initialize_roles_and_permissions(db_session):
 
     commercial_role.permissions = [
         create_client_permission,
+        create_event_permission,  # Si responsable du client
 
+        read_user_permission,
         read_client_permission,
         read_contract_permission,
         read_event_permission,
+
+        update_client_permission,  # Si responsable du client
     ]
 
     support_role.permissions = [
+
+        read_user_permission,
         read_client_permission,
         read_contract_permission,
         read_event_permission,
+
+        update_event_permission,  # Si responsable de l'évènement
     ]
 
     db_session.commit()
