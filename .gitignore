@@ -1,5 +1,7 @@
 __pycache__/
 .pytest_cache/
+tests/
 *.pyc
 poetry.lock
+pytest.ini
 .env
