@@ -97,7 +97,7 @@ class EventRepository:
 
     def delete_event(self, event_id: int) -> bool:
         """Supprime un événement par son ID."""
-        event = self.get_event_by_id(event_id)
+        event = self.get_events(event_id)[0]
         if event:
             self.db.delete(event)
             self.db.commit()

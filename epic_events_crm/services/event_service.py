@@ -136,7 +136,7 @@ class EventService:
         Retourne une erreur si l'événement n'existe pas.
         """
         try:
-            event = self.event_repo.get_event_by_id(event_id)
+            event = self.event_repo.get_events(event_id)
             if not event:
                 logging.debug(f"Événement introuvable : {event_id}")
                 return {"error": "Événement introuvable"}
