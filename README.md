@@ -10,6 +10,7 @@ Epic Events CRM est une application de gestion des clients, contrats et événem
 - **JWT** : Authentification sécurisée.
 - **Argon2** : Hachage des mots de passe.
 - **dotenv** : Gestion des variables d'environnement.
+- **Sentry** : Journalisation des erreurs.
 
 ## Fonctionnalités
 
