@@ -90,6 +90,12 @@ def admin():
     click.echo(f"✅ Création de {admin_user.full_name} réussie.")
 
 
+@main.command()
+def sentry():
+    division_by_zero = 1 / 0
+    print(division_by_zero)
+
+
 # Ajout de sous-commandes sous chaque groupe
 main.add_command(user_group)
 main.add_command(client_group)
