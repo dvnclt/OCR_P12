@@ -24,7 +24,7 @@ user_service = UserService(user_repo)
 @click.pass_context
 def main(ctx):
     """Vérification du token avant chaque commande excepté login/logout"""
-    if ctx.invoked_subcommand not in ["login", "logout", "admin"]:
+    if ctx.invoked_subcommand not in ["login", "logout", "admin", "sentry"]:
         token = get_token()
         user = get_current_user(token, user_repo)
         if isinstance(user, dict) and "error" in user:
