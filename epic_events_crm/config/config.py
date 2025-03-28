@@ -1,4 +1,5 @@
 import os
+import sentry_sdk
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
@@ -6,6 +7,13 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
+
+sentry_sdk.init(
+    dsn="https://d25274d49594994e87a357fda009f962@o4509044061437952.ingest.de.sentry.io/4509044064649296",  # noqa: E501
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info  # noqa: E501
+    send_default_pii=True,
+)
 
 # Récupérer la clé secrète pour JWT depuis le fichier .env
 SECRET_KEY = os.getenv("SECRET_KEY")
